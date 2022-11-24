@@ -13,6 +13,7 @@ int main(int argc, char* argv[]){
     printf("Verifying mirrors...\n");
 
     for(int i = 0; i < 0x2000; i = i + 0x100){
+        if (!(i % 0x800)) printf("Sampling mirrors %d:\n", (i/0x800));
         printf("Mapped indirect %x to %p\n", i, mem.map[i]);
     }
 
