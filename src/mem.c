@@ -8,8 +8,8 @@ void init_main_memory(uint8_t*, uint8_t**);
 
 Memory alloc_main_memory(void){
     
-    uint8_t* _map = (uint8_t  *)xmalloc(sizeof(uint8_t)  * CPU_MEM_SIZE);
-    uint8_t** map = (uint8_t **)xmalloc(sizeof(uint8_t*) * CPU_MEM_SIZE);
+    uint8_t* _map = xalloc(CPU_MEM_SIZE, sizeof(uint8_t), calloc);
+    uint8_t** map = xalloc(CPU_MEM_SIZE, sizeof(uint8_t*), calloc);
 
     init_main_memory(_map, map);
     

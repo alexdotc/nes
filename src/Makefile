@@ -2,17 +2,23 @@ binout = nes.out
 compiler = gcc
 flags := $(compiler) -Wall -Werror -std=c11
 
-default: main.o mem.o util.o
-	$(compiler) main.o mem.o util.o -o $(binout)
+default: main.o cpu.o mem.o nes.o util.o
+	$(flags) main.o cpu.o mem.o nes.o util.o -o $(binout)
 
-main.o: main.c cpu.h
-	$(compiler) -c main.c
+main.o: main.c
+	$(flags) -c main.c
+
+cpu.o: cpu.h cpu.c
+	$(flags) -c cpu.c
 
 mem.o: mem.h mem.c
-	$(compiler) -c mem.c
+	$(flags) -c mem.c
+
+nes.o: nes.h nes.c
+	$(flags) -c nes.c
 
 util.o: util.h util.c
-	$(compiler) -c util.c
+	$(flags) -c util.c
 
 clean:
 	rm -fv *.o *.out

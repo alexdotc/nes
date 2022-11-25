@@ -4,11 +4,15 @@
 
 #include "util.h"
 
-void* xmalloc(size_t size){
-	void* r;
-    if ((r = malloc(size)) == NULL){
-        fprintf(stderr, "fatal: malloc failed to allocate %lu bytes\n", size);
+void* xalloc(size_t num, size_t size, void* (*allocator)(size_t,size_t)){
+	void* r = (*allocator)(num,size);
+    if (r == NULL){
+        fprintf(stderr, "fatal: failed to allocate %lu bytes\n", size);
         exit(EXIT_FAILURE);
     }
     return r;
+}
+
+void* twoarg_malloc(size_t num, size_t size){
+    return malloc(num * size);
 }

@@ -5,6 +5,13 @@
 
 #include "mem.h"
 
+#define NMI 0xFFFA
+#define RESET 0xFFFC
+#define IRQ 0xFFFE 
+
+#define IRQ_DISABLE 0x34
+#define SP_INIT 0xFD
+
 typedef struct CPU {
 
     /* registers */
@@ -15,5 +22,8 @@ typedef struct CPU {
     Memory* mem;
     
 } CPU;
+
+CPU make_cpu(Memory*);
+void reset(CPU*);
 
 #endif

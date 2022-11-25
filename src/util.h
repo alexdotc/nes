@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 
-void* xmalloc(size_t size);
+void* xalloc(size_t, size_t, void* (*)(size_t, size_t));
+void* twoarg_malloc(size_t, size_t);
 
 #endif
