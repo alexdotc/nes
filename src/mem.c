@@ -32,6 +32,7 @@ void free_main_memory(Memory mem){
 }
 
 void init_main_memory(uint8_t* _map, uint8_t** map){
+    /* TODO use memcpy */
 
     /* 4x mirrored internal ram */
     for(int i = 0; i < 0x2000; ++i){
