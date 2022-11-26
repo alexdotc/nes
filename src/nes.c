@@ -3,11 +3,16 @@
 #include "mem.h"
 #include "rom.h"
 
+#include <stdio.h>
+
 NES power_on(){
     Memory mem = alloc_main_memory();
     CPU cpu = make_cpu(&mem);
     NES nes = { cpu, mem };
     load_rom(&nes, "ex.nes");
+    for (int i = 0x8000; i < 0x8010; ++i){
+        printf("Location %x: %x\n", i, *(nes.mem.map[i]));
+    }
     reset(&cpu);
     return nes;
 }
