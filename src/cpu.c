@@ -1,85 +1,121 @@
 #include <stdint.h>
+#include <stddef.h>
 
 #include "cpu.h"
 #include "mem.h"
 
-static inline void STA(CPU*, uint16_t operand);
-static inline void STX(CPU*, uint16_t operand);
-static inline void STY(CPU*, uint16_t operand);
-static inline void LDA(CPU*, uint16_t operand);
-static inline void LDX(CPU*, uint16_t operand);
-static inline void LDY(CPU*, uint16_t operand);
-static inline void CPX(CPU*, uint16_t operand);
-static inline void CPY(CPU*, uint16_t operand);
-static inline void CMP(CPU*, uint16_t operand);
-static inline void TAX(CPU*, uint16_t operand);
-static inline void TAY(CPU*, uint16_t operand);
-static inline void TSX(CPU*, uint16_t operand);
-static inline void TXA(CPU*, uint16_t operand);
-static inline void TXS(CPU*, uint16_t operand);
-static inline void TYA(CPU*, uint16_t operand);
-static inline void DEC(CPU*, uint16_t operand);
-static inline void INC(CPU*, uint16_t operand);
-static inline void INX(CPU*, uint16_t operand);
-static inline void INY(CPU*, uint16_t operand);
-static inline void DEX(CPU*, uint16_t operand);
-static inline void BRK(CPU*, uint16_t operand);
-static inline void BPL(CPU*, uint16_t operand);
-static inline void BIT(CPU*, uint16_t operand);
-static inline void BMI(CPU*, uint16_t operand);
-static inline void BCC(CPU*, uint16_t operand);
-static inline void BCS(CPU*, uint16_t operand);
-static inline void BVC(CPU*, uint16_t operand);
-static inline void BVS(CPU*, uint16_t operand);
-static inline void BEQ(CPU*, uint16_t operand);
-static inline void BNE(CPU*, uint16_t operand);
-static inline void ORA(CPU*, uint16_t operand);
-static inline void ASL(CPU*, uint16_t operand);
-static inline void DEY(CPU*, uint16_t operand);
-static inline void PLA(CPU*, uint16_t operand);
-static inline void PHA(CPU*, uint16_t operand);
-static inline void PHP(CPU*, uint16_t operand);
-static inline void PLP(CPU*, uint16_t operand);
-static inline void CLC(CPU*, uint16_t operand);
-static inline void CLD(CPU*, uint16_t operand);
-static inline void CLI(CPU*, uint16_t operand);
-static inline void CLV(CPU*, uint16_t operand);
-static inline void JMP(CPU*, uint16_t operand);
-static inline void JSR(CPU*, uint16_t operand);
-static inline void RTS(CPU*, uint16_t operand);
-static inline void RTI(CPU*, uint16_t operand);
-static inline void ROL(CPU*, uint16_t operand);
-static inline void SEC(CPU*, uint16_t operand);
-static inline void SEI(CPU*, uint16_t operand);
-static inline void AND(CPU*, uint16_t operand);
-static inline void ROR(CPU*, uint16_t operand);
-static inline void EOR(CPU*, uint16_t operand);
-static inline void LSR(CPU*, uint16_t operand);
-static inline void ADC(CPU*, uint16_t operand);
-static inline void SBC(CPU*, uint16_t operand);
-static inline void SED(CPU*, uint16_t operand);
-static inline void NOP(CPU*, uint16_t operand);
-static inline void undef(CPU*, uint16_t operand); /* illegal opcode */
+static inline void STA(CPU*, uint16_t);
+static inline void STX(CPU*, uint16_t);
+static inline void STY(CPU*, uint16_t);
+static inline void LDA(CPU*, uint16_t);
+static inline void LDX(CPU*, uint16_t);
+static inline void LDY(CPU*, uint16_t);
+static inline void CPX(CPU*, uint16_t);
+static inline void CPY(CPU*, uint16_t);
+static inline void CMP(CPU*, uint16_t);
+static inline void TAX(CPU*, uint16_t);
+static inline void TAY(CPU*, uint16_t);
+static inline void TSX(CPU*, uint16_t);
+static inline void TXA(CPU*, uint16_t);
+static inline void TXS(CPU*, uint16_t);
+static inline void TYA(CPU*, uint16_t);
+static inline void DEC(CPU*, uint16_t);
+static inline void INC(CPU*, uint16_t);
+static inline void INX(CPU*, uint16_t);
+static inline void INY(CPU*, uint16_t);
+static inline void DEX(CPU*, uint16_t);
+static inline void BRK(CPU*, uint16_t);
+static inline void BPL(CPU*, uint16_t);
+static inline void BIT(CPU*, uint16_t);
+static inline void BMI(CPU*, uint16_t);
+static inline void BCC(CPU*, uint16_t);
+static inline void BCS(CPU*, uint16_t);
+static inline void BVC(CPU*, uint16_t);
+static inline void BVS(CPU*, uint16_t);
+static inline void BEQ(CPU*, uint16_t);
+static inline void BNE(CPU*, uint16_t);
+static inline void ORA(CPU*, uint16_t);
+static inline void ASL(CPU*, uint16_t);
+static inline void DEY(CPU*, uint16_t);
+static inline void PLA(CPU*, uint16_t);
+static inline void PHA(CPU*, uint16_t);
+static inline void PHP(CPU*, uint16_t);
+static inline void PLP(CPU*, uint16_t);
+static inline void CLC(CPU*, uint16_t);
+static inline void CLD(CPU*, uint16_t);
+static inline void CLI(CPU*, uint16_t);
+static inline void CLV(CPU*, uint16_t);
+static inline void JMP(CPU*, uint16_t);
+static inline void JSR(CPU*, uint16_t);
+static inline void RTS(CPU*, uint16_t);
+static inline void RTI(CPU*, uint16_t);
+static inline void ROL(CPU*, uint16_t);
+static inline void SEC(CPU*, uint16_t);
+static inline void SEI(CPU*, uint16_t);
+static inline void AND(CPU*, uint16_t);
+static inline void ROR(CPU*, uint16_t);
+static inline void EOR(CPU*, uint16_t);
+static inline void LSR(CPU*, uint16_t);
+static inline void ADC(CPU*, uint16_t);
+static inline void SBC(CPU*, uint16_t);
+static inline void SED(CPU*, uint16_t);
+static inline void NOP(CPU*, uint16_t);
+
+/* addressing modes. Get operand based on register values and memory pointer */
+static inline uint16_t addr_Accumulator(CPU*);
+static inline uint16_t addr_Absolute(CPU*);
+static inline uint16_t addr_AbsoluteX(CPU*);
+static inline uint16_t addr_AbsoluteY(CPU*);
+static inline uint16_t addr_Immediate(CPU*);
+static inline uint16_t addr_Implied(CPU*);
+static inline uint16_t addr_Indirect(CPU*);
+static inline uint16_t addr_IndirectX(CPU*);
+static inline uint16_t addr_IndirectY(CPU*);
+static inline uint16_t addr_Relative(CPU*);
+static inline uint16_t addr_ZeroPage(CPU*);
+static inline uint16_t addr_ZeroPageX(CPU*);
+static inline uint16_t addr_ZeroPageY(CPU*);
 
 /* array of function pointers to opcode routines, indexed by opcode number */
 static const void (*opcodes[256])(CPU*, uint16_t) =
 {
-    BRK, ORA, undef, undef, undef, ORA, ASL, undef, PHP, ORA, ASL, undef, undef, ORA, ASL, undef, /* 00-OF */
-    BPL, ORA, undef, undef, undef, ORA, ASL, undef, CLC, ORA, undef, undef, undef, ORA, ASL, undef, /* 10-1F */
-    JSR, AND, undef, undef, BIT, AND, ROL, undef, PLP, AND, ROL, undef, BIT, AND, ROL, undef, /* 20-2F */
-    BMI, AND, undef, undef, undef, AND, ROL, undef, SEC, AND, undef, undef, undef, AND, ROL, undef, /* 30-3F */
-    RTI, EOR, undef, undef, undef, EOR, LSR, undef, PHA, EOR, LSR, undef, JMP, EOR, LSR, undef, /* 40-4F */
-    BVC, EOR, undef, undef, undef, EOR, LSR, undef, CLI, EOR, undef, undef, undef, EOR, LSR, undef, /* 50-5F */
-    RTS, ADC, undef, undef, undef, ADC, ROR, undef, PLA, ADC, ROR, undef, JMP, ADC, ROR, undef, /* 60-6F */
-    BVS, ADC, undef, undef, undef, ADC, ROR, undef, SEI, ADC, undef, undef, undef, ADC, ROR, undef, /* 70-7F */
-    undef, STA, undef, undef, STY, STA, STX, undef, DEY, undef, TXA, undef, STY, STA, STX, undef, /* 80-8F */
-    BCC, STA, undef, undef, STY, STA, STX, undef, TYA, STA, TXS, undef, undef, STA, undef, undef, /* 90-9F */
-    LDY, LDA, LDX, undef, LDY, LDA, LDX, undef, TAY, LDA, TAX, undef, LDY, LDA, LDX, undef, /* A0-AF */
-    BCS, LDA, undef, undef, LDY, LDA, LDX, undef, CLV, LDA, TSX, undef, LDY, LDA, LDX, undef, /* B0-BF */
-    CPY, CMP, undef, undef, CPY, CMP, DEC, undef, INY, CMP, DEX, undef, CPY, CMP, DEC, undef, /* C0-CF */
-    BNE, CMP, undef, undef, undef, CMP, DEC, undef, CLD, CMP, undef, undef, undef, CMP, DEC, undef, /* D0-DF */
-    CPX, SBC, undef, undef, CPX, SBC, INC, undef, INX, SBC, NOP, undef, CPX, SBC, INC, undef, /* E0-EF */
-    BEQ, SBC, undef, undef, undef, SBC, INC, undef, SED, SBC, undef, undef, undef, SBC, INC, undef /* F0-FF */
+    BRK, ORA, NULL, NULL, NULL, ORA, ASL, NULL, PHP, ORA, ASL, NULL, NULL, ORA, ASL, NULL, /* 00-OF */
+    BPL, ORA, NULL, NULL, NULL, ORA, ASL, NULL, CLC, ORA, NULL, NULL, NULL, ORA, ASL, NULL, /* 10-1F */
+    JSR, AND, NULL, NULL, BIT, AND, ROL, NULL, PLP, AND, ROL, NULL, BIT, AND, ROL, NULL, /* 20-2F */
+    BMI, AND, NULL, NULL, NULL, AND, ROL, NULL, SEC, AND, NULL, NULL, NULL, AND, ROL, NULL, /* 30-3F */
+    RTI, EOR, NULL, NULL, NULL, EOR, LSR, NULL, PHA, EOR, LSR, NULL, JMP, EOR, LSR, NULL, /* 40-4F */
+    BVC, EOR, NULL, NULL, NULL, EOR, LSR, NULL, CLI, EOR, NULL, NULL, NULL, EOR, LSR, NULL, /* 50-5F */
+    RTS, ADC, NULL, NULL, NULL, ADC, ROR, NULL, PLA, ADC, ROR, NULL, JMP, ADC, ROR, NULL, /* 60-6F */
+    BVS, ADC, NULL, NULL, NULL, ADC, ROR, NULL, SEI, ADC, NULL, NULL, NULL, ADC, ROR, NULL, /* 70-7F */
+    NULL, STA, NULL, NULL, STY, STA, STX, NULL, DEY, NULL, TXA, NULL, STY, STA, STX, NULL, /* 80-8F */
+    BCC, STA, NULL, NULL, STY, STA, STX, NULL, TYA, STA, TXS, NULL, NULL, STA, NULL, NULL, /* 90-9F */
+    LDY, LDA, LDX, NULL, LDY, LDA, LDX, NULL, TAY, LDA, TAX, NULL, LDY, LDA, LDX, NULL, /* A0-AF */
+    BCS, LDA, NULL, NULL, LDY, LDA, LDX, NULL, CLV, LDA, TSX, NULL, LDY, LDA, LDX, NULL, /* B0-BF */
+    CPY, CMP, NULL, NULL, CPY, CMP, DEC, NULL, INY, CMP, DEX, NULL, CPY, CMP, DEC, NULL, /* C0-CF */
+    BNE, CMP, NULL, NULL, NULL, CMP, DEC, NULL, CLD, CMP, NULL, NULL, NULL, CMP, DEC, NULL, /* D0-DF */
+    CPX, SBC, NULL, NULL, CPX, SBC, INC, NULL, INX, SBC, NOP, NULL, CPX, SBC, INC, NULL, /* E0-EF */
+    BEQ, SBC, NULL, NULL, NULL, SBC, INC, NULL, SED, SBC, NULL, NULL, NULL, SBC, INC, NULL /* F0-FF */
+};
+
+/* array of function pointers to addressing modes indexed by opcode number */
+static const uint16_t (*addrmodes[256])(CPU*) =
+{
+    addr_Implied, addr_Indirect, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, NULL, addr_Absolute, addr_Absolute, NULL, /* 00-OF */
+    addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 10-1F */
+    addr_Absolute, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* 20-2F */
+    addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 30-3F */
+    addr_Implied, addr_IndirectX, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* 40-4F */
+    addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 50-5F */
+    addr_Implied, addr_IndirectX, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, addr_Indirect, addr_Absolute, addr_Absolute, NULL, /* 60-6F */
+    addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 70-7F */
+    NULL, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, NULL, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* 80-8F */
+    addr_Relative, addr_IndirectY, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, addr_ZeroPageY, NULL, addr_Implied, addr_AbsoluteY, addr_Implied, NULL, NULL, addr_AbsoluteX, NULL, NULL, /* 90-9F */
+    addr_Immediate, addr_IndirectX, addr_Immediate, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* A0-AF */
+    addr_Relative, addr_IndirectY, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, addr_ZeroPageY, NULL, addr_Implied, addr_AbsoluteY, addr_Implied, NULL, addr_AbsoluteX, addr_AbsoluteX, addr_AbsoluteY, NULL, /* B0-BF */
+    addr_Immediate, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* C0-CF */
+    addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* D0-DF */
+    addr_Immediate, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* E0-EF */
+    addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL /* F0-FF */
 };
 
 
@@ -99,4 +135,287 @@ void reset(CPU* cpu){
 
     cpu->PC = (((uint16_t)(*(cpu->mem->map[RESET+1]))) << 8) + (uint16_t)(*(cpu->mem->map[RESET])); /* TODO make a 2-byte LE parser function */
 
+}
+
+void FDE(CPU* cpu){
+    /* cpu main FDE loop */
+    uint16_t operand = addrmodes[0](cpu); /* TODO Werror */
+    opcodes[0](cpu, operand); /* TODO Werror */
+
+}
+
+static inline uint16_t addr_Accumulator(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_Absolute(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_AbsoluteX(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_AbsoluteY(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_Immediate(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_Implied(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_Indirect(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_IndirectX(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_IndirectY(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_Relative(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_ZeroPage(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_ZeroPageX(CPU* cpu){
+    return 0;
+}
+
+static inline uint16_t addr_ZeroPageY(CPU* cpu){
+    return 0;
+}
+
+static inline void STA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void STX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void STY(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void LDA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void LDX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void LDY(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CPX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CPY(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CMP(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void TAX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void TAY(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void TSX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void TXA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void TXS(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void TYA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void DEC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void INC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void INX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void INY(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void DEX(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BRK(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BPL(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BIT(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BMI(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BCC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BCS(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BVC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BVS(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BEQ(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void BNE(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void ORA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void ASL(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void DEY(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void PLA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void PHA(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void PHP(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void PLP(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CLC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CLD(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CLI(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void CLV(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void JMP(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void JSR(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void RTS(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void RTI(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void ROL(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void SEC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void SEI(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void AND(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void ROR(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void EOR(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void LSR(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void ADC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void SBC(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void SED(CPU* cpu, uint16_t operand){
+    return;
+}
+
+static inline void NOP(CPU* cpu, uint16_t operand){
+    return;
 }
