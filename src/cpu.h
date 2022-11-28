@@ -25,5 +25,6 @@ typedef struct CPU {
 
 CPU make_cpu(Memory*);
 void reset(CPU*);
+void FDE(CPU*);
 
 #endif

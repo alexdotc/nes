@@ -4,9 +4,7 @@
 
 int main(int argc, char* argv[]){
 
-    printf("I've compiled without issue.\n");
     printf("Power on\n");
-
     NES nes = power_on();
 
     printf("Power off\n");

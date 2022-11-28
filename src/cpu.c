@@ -1,8 +1,11 @@
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "cpu.h"
 #include "mem.h"
+
+static inline uint8_t memread(CPU*, uint16_t);
 
 static inline void STA(CPU*, uint16_t);
 static inline void STX(CPU*, uint16_t);
@@ -130,17 +133,39 @@ CPU make_cpu(Memory* mem){
     return cpu;
 }
 
+static inline uint8_t memread(CPU* cpu, uint16_t addr){
+    uint8_t read = *(cpu->mem->map[addr]);
+    return read;
+}
+
+static inline uint8_t memreadPC(CPU* cpu){
+    /* convenience wrapper to do a read at PC and then increment PC */
+    uint16_t addr = cpu->PC;
+    uint8_t read = memread(cpu, addr);
+    cpu->PC++;
+    return read;
+}
+
 void reset(CPU* cpu){
     /* set PC to address in reset vector */
+    cpu->PC = RESET;
+    uint16_t low = memreadPC(cpu);
+    uint16_t high = memreadPC(cpu);
 
-    cpu->PC = (((uint16_t)(*(cpu->mem->map[RESET+1]))) << 8) + (uint16_t)(*(cpu->mem->map[RESET])); /* TODO make a 2-byte LE parser function */
-
+    cpu->PC = (high << 8) | low; /* jump */
+    #ifdef DEBUG
+    cpu->PC = 0xC000; /* nestest log */
+    #endif
 }
 
 void FDE(CPU* cpu){
     /* cpu main FDE loop */
-    uint16_t operand = addrmodes[0](cpu); /* TODO Werror */
-    opcodes[0](cpu, operand); /* TODO Werror */
+    #ifdef DEBUG
+    fprintf(stdout, "%4X\n", cpu->PC); /* TODO write to a log file or stdout */
+    #endif
+    uint8_t opcode = memreadPC(cpu); /* fetch */
+    uint16_t operand = addrmodes[opcode](cpu); /* TODO Werror */
+    opcodes[opcode](cpu, operand); /* TODO Werror */
 
 }
 
@@ -149,7 +174,10 @@ static inline uint16_t addr_Accumulator(CPU* cpu){
 }
 
 static inline uint16_t addr_Absolute(CPU* cpu){
-    return 0;
+    uint16_t low = memreadPC(cpu);
+    uint16_t high = memreadPC(cpu);
+    uint16_t full = (high << 8) | low;
+    return full;
 }
 
 static inline uint16_t addr_AbsoluteX(CPU* cpu){
@@ -361,6 +389,9 @@ static inline void CLV(CPU* cpu, uint16_t operand){
 }
 
 static inline void JMP(CPU* cpu, uint16_t operand){
+    /* TODO we need to address the fact that *operand*
+        can be relative. we assume absolute for now. */
+    cpu->PC = operand;
     return;
 }
 
