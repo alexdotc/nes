@@ -1,6 +1,6 @@
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "cpu.h"
 #include "mem.h"
@@ -100,6 +100,28 @@ static const void (*opcodes[256])(CPU*, uint16_t) =
     BEQ, SBC, NULL, NULL, NULL, SBC, INC, NULL, SED, SBC, NULL, NULL, NULL, SBC, INC, NULL /* F0-FF */
 };
 
+#ifdef DEBUG
+static const char* mnemonic_str[256] =
+{
+    "BRK", "ORA", NULL, NULL, NULL, "ORA", "ASL", NULL, "PHP", "ORA", "ASL", NULL, NULL, "ORA", "ASL", NULL, /* 00-OF */
+    "BPL", "ORA", NULL, NULL, NULL, "ORA", "ASL", NULL, "CLC", "ORA", NULL, NULL, NULL, "ORA", "ASL", NULL, /* 10-1F */
+    "JSR", "AND", NULL, NULL, "BIT", "AND", "ROL", NULL, "PLP", "AND", "ROL", NULL, "BIT", "AND", "ROL", NULL, /* 20-2F */
+    "BMI", "AND", NULL, NULL, NULL, "AND", "ROL", NULL, "SEC", "AND", NULL, NULL, NULL, "AND", "ROL", NULL, /* 30-3F */
+    "RTI", "EOR", NULL, NULL, NULL, "EOR", "LSR", NULL, "PHA", "EOR", "LSR", NULL, "JMP", "EOR", "LSR", NULL, /* 40-4F */
+    "BVC", "EOR", NULL, NULL, NULL, "EOR", "LSR", NULL, "CLI", "EOR", NULL, NULL, NULL, "EOR", "LSR", NULL, /* 50-5F */
+    "RTS", "ADC", NULL, NULL, NULL, "ADC", "ROR", NULL, "PLA", "ADC", "ROR", NULL, "JMP", "ADC", "ROR", NULL, /* 60-6F */
+    "BVS", "ADC", NULL, NULL, NULL, "ADC", "ROR", NULL, "SEI", "ADC", NULL, NULL, NULL, "ADC", "ROR", NULL, /* 70-7F */
+    NULL, "STA", NULL, NULL, "STY", "STA", "STX", NULL, "DEY", NULL, "TXA", NULL, "STY", "STA", "STX", NULL, /* 80-8F */
+    "BCC", "STA", NULL, NULL, "STY", "STA", "STX", NULL, "TYA", "STA", "TXS", NULL, NULL, "STA", NULL, NULL, /* 90-9F */
+    "LDY", "LDA", "LDX", NULL, "LDY", "LDA", "LDX", NULL, "TAY", "LDA", "TAX", NULL, "LDY", "LDA", "LDX", NULL, /* A0-AF */
+    "BCS", "LDA", NULL, NULL, "LDY", "LDA", "LDX", NULL, "CLV", "LDA", "TSX", NULL, "LDY", "LDA", "LDX", NULL, /* B0-BF */
+    "CPY", "CMP", NULL, NULL, "CPY", "CMP", "DEC", NULL, "INY", "CMP", "DEX", NULL, "CPY", "CMP", "DEC", NULL, /* C0-CF */
+    "BNE", "CMP", NULL, NULL, NULL, "CMP", "DEC", NULL, "CLD", "CMP", NULL, NULL, NULL, "CMP", "DEC", NULL, /* D0-DF */
+    "CPX", "SBC", NULL, NULL, "CPX", "SBC", "INC", NULL, "INX", "SBC", "NOP", NULL, "CPX", "SBC", "INC", NULL, /* E0-EF */
+    "BEQ", "SBC", NULL, NULL, NULL, "SBC", "INC", NULL, "SED", "SBC", NULL, NULL, NULL, "SBC", "INC", NULL /* F0-FF */
+};
+#endif
+
 /* array of function pointers to addressing modes indexed by opcode number */
 static const uint16_t (*addrmodes[256])(CPU*) =
 {
@@ -172,13 +194,18 @@ void FDE(CPU* cpu){
     #endif
 
     uint8_t opcode = memreadPC(cpu); 
-    uint16_t operand = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly */
+    if (addrmodes[opcode] == NULL){
+        fprintf(stderr, "fatal: CPU: Illegal opcode %02x at location %04X", opcode, cpu->PC-1);
+        exit(EXIT_FAILURE);
+    }
+    uint16_t operand = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly and in debug */
 
     #ifdef DEBUG
-    /* TODO get mnemonic "repr" string and replace "MNE" */
     /* TODO write to a log file or stdout */
     /* TODO GET CYCLES and replace "42" */
-    fprintf(stdout, "%04X  %02X %02X %02X  %s $%02X%02X                       A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", _pc, opcode, _oper_low, _oper_high, "MNE", _oper_high, _oper_low, _a, _x, _y, _p, _sp, 42);
+    const char* mnemonic = mnemonic_str[opcode];
+    fprintf(stdout, "%04X  %02X %02X %02X  %s $%02X%02X                       A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", 
+            _pc, opcode, _oper_low, _oper_high, mnemonic, _oper_high, _oper_low, _a, _x, _y, _p, _sp, 42);
     #endif
 
     opcodes[opcode](cpu, operand);
@@ -405,8 +432,6 @@ static inline void CLV(CPU* cpu, uint16_t operand){
 }
 
 static inline void JMP(CPU* cpu, uint16_t operand){
-    /* TODO we need to address the fact that *operand*
-        can be a relative address. we assume absolute for now. */
     cpu->PC = operand;
     return;
 }
