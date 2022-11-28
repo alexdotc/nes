@@ -5,11 +5,11 @@
 
 #include <stdio.h>
 
-NES power_on(){
+NES power_on(const char* rom_filename){
     Memory mem = alloc_main_memory();
     CPU cpu = make_cpu(&mem);
     NES nes = { cpu, mem };
-    load_rom(&nes, "nestest.nes");
+    load_rom(&nes, rom_filename); /* TODO at some point down the line, we probably just want to do this as something separate from power_on, and just wait for a call while idling */
     #ifdef DEBUG
     printf("Sampling NROM mirroring...\n");
     for (int i = 0x8000; i < 0x8010; ++i){
