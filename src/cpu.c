@@ -124,7 +124,7 @@ static const uint16_t (*addrmodes[256])(CPU*) =
 
 CPU make_cpu(Memory* mem){
     uint8_t A = 0, X = 0, Y = 0;
-    uint8_t P = IRQ_DISABLE;
+    uint8_t P = STATUS_INIT;
     uint8_t SP = SP_INIT;
     uint16_t PC = 0;
 
