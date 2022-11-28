@@ -15,7 +15,7 @@
 typedef struct CPU {
 
     /* registers */
-    uint8_t A, X, Y, S, P;
+    uint8_t A, X, Y, P, SP;
     uint16_t PC;
 
     /* memory */

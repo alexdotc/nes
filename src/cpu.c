@@ -125,10 +125,10 @@ static const uint16_t (*addrmodes[256])(CPU*) =
 CPU make_cpu(Memory* mem){
     uint8_t A = 0, X = 0, Y = 0;
     uint8_t P = IRQ_DISABLE;
-    uint8_t S = SP_INIT;
+    uint8_t SP = SP_INIT;
     uint16_t PC = 0;
 
-    CPU cpu = { A,X,Y,S,P,PC,mem };
+    CPU cpu = { A,X,Y,P,SP,PC,mem };
 
     return cpu;
 }
@@ -159,13 +159,29 @@ void reset(CPU* cpu){
 }
 
 void FDE(CPU* cpu){
-    /* cpu main FDE loop */
-    #ifdef DEBUG
-    fprintf(stdout, "%4X\n", cpu->PC); /* TODO write to a log file or stdout */
+    /* cpu main Fetch-Decode-Execute loop */
+    #ifdef DEBUG /* snapshot pre-instruction state (put this in function? TODO)*/
+    uint16_t _pc = cpu->PC;
+    uint8_t _a  = cpu->A;
+    uint8_t _x  = cpu->X;
+    uint8_t _y  = cpu->Y;
+    uint8_t _p  = cpu->P;
+    uint8_t _sp  = cpu->SP;
+    uint8_t _oper_low = memread(cpu, _pc+1);
+    uint8_t _oper_high = memread(cpu, _pc+2);
     #endif
-    uint8_t opcode = memreadPC(cpu); /* fetch */
-    uint16_t operand = addrmodes[opcode](cpu); /* TODO Werror */
-    opcodes[opcode](cpu, operand); /* TODO Werror */
+
+    uint8_t opcode = memreadPC(cpu); 
+    uint16_t operand = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly */
+
+    #ifdef DEBUG
+    /* TODO get mnemonic "repr" string and replace "MNE" */
+    /* TODO write to a log file or stdout */
+    /* TODO GET CYCLES and replace "42" */
+    fprintf(stdout, "%04X  %02X %02X %02X  %s $%02X%02X                       A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", _pc, opcode, _oper_low, _oper_high, "MNE", _oper_high, _oper_low, _a, _x, _y, _p, _sp, 42);
+    #endif
+
+    opcodes[opcode](cpu, operand);
 
 }
 
@@ -390,7 +406,7 @@ static inline void CLV(CPU* cpu, uint16_t operand){
 
 static inline void JMP(CPU* cpu, uint16_t operand){
     /* TODO we need to address the fact that *operand*
-        can be relative. we assume absolute for now. */
+        can be a relative address. we assume absolute for now. */
     cpu->PC = operand;
     return;
 }

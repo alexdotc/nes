@@ -11,11 +11,12 @@ NES power_on(){
     NES nes = { cpu, mem };
     load_rom(&nes, "nestest.nes");
     #ifdef DEBUG
+    printf("Sampling NROM mirroring...\n");
     for (int i = 0x8000; i < 0x8010; ++i){
-        printf("Location %x: %x\n", i, *(nes.mem.map[i]));
+        printf("Location %04X: %02x\n", i, *(nes.mem.map[i]));
     }
     for (int i = 0xC000; i < 0xC010; ++i){
-        printf("Location %x: %x\n", i, *(nes.mem.map[i]));
+        printf("Location %04X: %02x\n", i, *(nes.mem.map[i]));
     }
     #endif
     reset(&cpu);
