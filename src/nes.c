@@ -1,9 +1,12 @@
+#ifdef DEBUG
+#include <stdio.h>
+#endif
+
 #include "nes.h"
 #include "cpu.h"
 #include "mem.h"
 #include "rom.h"
 
-#include <stdio.h>
 
 NES power_on(const char* rom_filename){
     Memory mem = alloc_main_memory();
