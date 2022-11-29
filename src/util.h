@@ -5,5 +5,6 @@
 
 void* xalloc(size_t, size_t, void* (*)(size_t, size_t));
 void* twoarg_malloc(size_t, size_t);
+void err_exit(const char* format, ...);
 
 #endif

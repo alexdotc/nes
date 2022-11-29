@@ -4,6 +4,7 @@
 
 #include "cpu.h"
 #include "mem.h"
+#include "util.h"
 
 static inline uint8_t memread(CPU*, uint16_t);
 
@@ -194,10 +195,8 @@ void FDE(CPU* cpu){
     #endif
 
     uint8_t opcode = memreadPC(cpu); 
-    if (addrmodes[opcode] == NULL){
-        fprintf(stderr, "fatal: CPU: Illegal opcode %02x at location %04X", opcode, cpu->PC-1);
-        exit(EXIT_FAILURE);
-    }
+    if (addrmodes[opcode] == NULL)
+        err_exit("fatal: CPU: Illegal opcode %02x at location %04X\n", opcode, cpu->PC-1);
     uint16_t operand = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly and in debug */
 
     #ifdef DEBUG

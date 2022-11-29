@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "rom.h"
+#include "util.h"
 
 const InesHeader read_ines_header(const uint8_t*);
 void validate_ines_header(const InesHeader*, const char*);
@@ -14,34 +15,30 @@ const InesHeader read_ines_header(const uint8_t* header){
     /* Parse an ines header and to a struct 
        Does NOT validate anything */
     bool sig = (*((uint32_t*) header) == INES_SIGNATURE);
-    /* TODO offset 4 is the LSB of a 12-bit value prgromsize but
-     * this is good enough for testing and any real NES game. */
+    /* TODO offset 4 is the LSB of a 12-bit value PRGROM size but
+     * this is good enough for testing and any retail NES game. */
     uint8_t prgrom = header[4];
     uint8_t mapper = (header[7] & 0xF0) & (header[6] >> 4);
     const InesHeader h = { sig, prgrom, mapper };
+    /* TODO update this as we need to read and support more stuff */
 
     return h;
 }
 
 void validate_ines_header(const InesHeader* header, const char* filename){
-    if(header->valid_signature != true){
-        fprintf(stderr, "fatal: iNES signature mismatch while loading %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
-    if(header->mapper != 0){
-        fprintf(stderr, "fatal: Mapper %d not supported while loading %s\n", header->mapper, filename);
-        exit(EXIT_FAILURE);
-    }
-    /* TODO DRY these error messages / checks */
+    if(header->valid_signature != true)
+        err_exit("fatal: ROM: iNES signature mismatch while loading %s\n", filename);
+    if(header->mapper != 0)
+        err_exit("fatal: ROM: Mapper %d not supported while loading %s\n", header->mapper, filename);
     /* TODO update validation based on what we do and don't support. Maybe just return error to caller */
 }
 
 const InesHeader load_rom(NES* nes, const char* filename){
+
     FILE* rom = fopen(filename, "rb");
-    if (rom == NULL){
-        fprintf(stderr, "fatal: Error opening file %s: %s\n", filename, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+    if (rom == NULL)
+        err_exit("fatal: Error opening file %s: %s\n", filename, strerror(errno));
+
     /* TODO check file length, reads */
     uint8_t header_bytes[16];
     fread(header_bytes, 1, 16, rom);
