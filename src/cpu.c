@@ -100,6 +100,29 @@ static const void (*opcodes[256])(CPU*, uint16_t) =
     BEQ, SBC, NULL, NULL, NULL, SBC, INC, NULL, SED, SBC, NULL, NULL, NULL, SBC, INC, NULL /* F0-FF */
 };
 
+/* base number of cycles per instruction (can be +1 or +2 depending on whether page boundaries are 
+   crossed, and, in the case of branch instructions, whether or not the branch was taken) 
+   6502 Illegal opcodes are just 0 to keep things simple. We die if we see one for now, anyway */
+static const uint8_t cycles[256] =
+{
+    7, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 0, 4, 6, 0, /* 00-OF */
+    2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, /* 10-1F */
+    6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 4, 4, 6, 0, /* 20-2F */
+    2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, /* 30-3F */
+    6, 6, 0, 0, 0, 3, 5, 0, 3, 2, 2, 0, 3, 4, 6, 0, /* 40-4F */
+    2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, /* 50-5F */
+    6, 6, 0, 0, 0, 3, 5, 0, 4, 2, 2, 0, 5, 4, 6, 0, /* 60-6F */
+    2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, /* 70-7F */
+    0, 6, 0, 0, 3, 3, 3, 0, 2, 0, 2, 0, 4, 4, 4, 0, /* 80-8F */
+    2, 6, 0, 0, 4, 4, 4, 0, 2, 5, 2, 0, 0, 5, 0, 0, /* 90-9F */
+    2, 6, 2, 0, 3, 3, 3, 0, 2, 2, 2, 0, 4, 4, 4, 0, /* A0-AF */
+    2, 5, 0, 0, 4, 4, 4, 0, 2, 4, 2, 0, 4, 4, 4, 0, /* B0-BF */
+    2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0, /* C0-CF */
+    2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0, /* D0-DF */
+    2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0, /* E0-EF */
+    2, 5, 0, 0, 0, 4, 6, 0, 2, 4, 0, 0, 0, 4, 7, 0 /* F0-FF */
+};
+
 #ifdef DEBUG
 static const char* mnemonic_str[256] =
 {
@@ -149,8 +172,8 @@ CPU make_cpu(Memory* mem){
     uint8_t P = STATUS_INIT;
     uint8_t SP = SP_INIT;
     uint16_t PC = 0;
-
-    CPU cpu = { A,X,Y,P,SP,PC,mem };
+    uint64_t cycles = STARTUP_CYCLES;
+    CPU cpu = { cycles,A,X,Y,P,SP,PC,mem };
 
     return cpu;
 }
@@ -171,12 +194,13 @@ static inline uint8_t memreadPC(CPU* cpu){
 void reset(CPU* cpu){
     /* set PC to address in reset vector */
     cpu->PC = RESET;
+    cpu->cycles = STARTUP_CYCLES;
     uint16_t low = memreadPC(cpu);
     uint16_t high = memreadPC(cpu);
 
     cpu->PC = (high << 8) | low; /* jump */
     #ifdef DEBUG
-    cpu->PC = 0xC000; /* nestest log */
+    cpu->PC = 0xC000; /* nestest first instruction */
     #endif
 }
 
@@ -202,11 +226,12 @@ void FDE(CPU* cpu){
     /* TODO write to a log file or stdout */
     /* TODO GET CYCLES and replace "42" */
     const char* mnemonic = mnemonic_str[opcode];
-    fprintf(stdout, "%04X  %02X %02X %02X  %s $%02X%02X                       A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%d\n", 
-            _pc, opcode, _oper_low, _oper_high, mnemonic, _oper_high, _oper_low, _a, _x, _y, _p, _sp, 42);
+    fprintf(stdout, "%04X  %02X %02X %02X  %s $%02X%02X                       A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", 
+            _pc, opcode, _oper_low, _oper_high, mnemonic, _oper_high, _oper_low, _a, _x, _y, _p, _sp, cpu->cycles);
     #endif
 
     opcodes[opcode](cpu, operand);
+    cpu->cycles = cpu->cycles + cycles[opcode];
 
 }
 

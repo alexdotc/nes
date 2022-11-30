@@ -14,10 +14,13 @@
    To elaborate: My understanding is that we need IRQ_DISABLE bit 2 set and bits 7,6,3,1,0 not set.
    0x34 (0011 0100) or 0x04 (0000 0100) are also valid initial power-on states for the status register */
 
-
 #define SP_INIT 0xFD
+#define STARTUP_CYCLES 7 
+/* 7 cycles to first instruction to match with nestest log */
 
 typedef struct CPU {
+
+    uint64_t cycles;
 
     /* registers */
     uint8_t A, X, Y, P, SP;
