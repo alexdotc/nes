@@ -5,87 +5,87 @@
 #include "mem.h"
 #include "util.h"
 
-static inline uint8_t memread(CPU* restrict, uint16_t);
+static inline uint8_t memread(CPU*, uint16_t);
 
 typedef union Operand{ /* mostly for fun since I never use them */
     uint8_t b1;
     uint16_t b2;
 } Operand;
 
-static inline void STA(CPU* restrict, Operand);
-static inline void STX(CPU* restrict, Operand);
-static inline void STY(CPU* restrict, Operand);
-static inline void LDA(CPU* restrict, Operand);
-static inline void LDX(CPU* restrict, Operand);
-static inline void LDY(CPU* restrict, Operand);
-static inline void CPX(CPU* restrict, Operand);
-static inline void CPY(CPU* restrict, Operand);
-static inline void CMP(CPU* restrict, Operand);
-static inline void TAX(CPU* restrict, Operand);
-static inline void TAY(CPU* restrict, Operand);
-static inline void TSX(CPU* restrict, Operand);
-static inline void TXA(CPU* restrict, Operand);
-static inline void TXS(CPU* restrict, Operand);
-static inline void TYA(CPU* restrict, Operand);
-static inline void DEC(CPU* restrict, Operand);
-static inline void INC(CPU* restrict, Operand);
-static inline void INX(CPU* restrict, Operand);
-static inline void INY(CPU* restrict, Operand);
-static inline void DEX(CPU* restrict, Operand);
-static inline void BRK(CPU* restrict, Operand);
-static inline void BPL(CPU* restrict, Operand);
-static inline void BIT(CPU* restrict, Operand);
-static inline void BMI(CPU* restrict, Operand);
-static inline void BCC(CPU* restrict, Operand);
-static inline void BCS(CPU* restrict, Operand);
-static inline void BVC(CPU* restrict, Operand);
-static inline void BVS(CPU* restrict, Operand);
-static inline void BEQ(CPU* restrict, Operand);
-static inline void BNE(CPU* restrict, Operand);
-static inline void ORA(CPU* restrict, Operand);
-static inline void ASL(CPU* restrict, Operand);
-static inline void DEY(CPU* restrict, Operand);
-static inline void PLA(CPU* restrict, Operand);
-static inline void PHA(CPU* restrict, Operand);
-static inline void PHP(CPU* restrict, Operand);
-static inline void PLP(CPU* restrict, Operand);
-static inline void CLC(CPU* restrict, Operand);
-static inline void CLD(CPU* restrict, Operand);
-static inline void CLI(CPU* restrict, Operand);
-static inline void CLV(CPU* restrict, Operand);
-static inline void JMP(CPU* restrict, Operand);
-static inline void JSR(CPU* restrict, Operand);
-static inline void RTS(CPU* restrict, Operand);
-static inline void RTI(CPU* restrict, Operand);
-static inline void ROL(CPU* restrict, Operand);
-static inline void SEC(CPU* restrict, Operand);
-static inline void SEI(CPU* restrict, Operand);
-static inline void AND(CPU* restrict, Operand);
-static inline void ROR(CPU* restrict, Operand);
-static inline void EOR(CPU* restrict, Operand);
-static inline void LSR(CPU* restrict, Operand);
-static inline void ADC(CPU* restrict, Operand);
-static inline void SBC(CPU* restrict, Operand);
-static inline void SED(CPU* restrict, Operand);
-static inline void NOP(CPU* restrict, Operand);
+static inline void STA(CPU*, Operand);
+static inline void STX(CPU*, Operand);
+static inline void STY(CPU*, Operand);
+static inline void LDA(CPU*, Operand);
+static inline void LDX(CPU*, Operand);
+static inline void LDY(CPU*, Operand);
+static inline void CPX(CPU*, Operand);
+static inline void CPY(CPU*, Operand);
+static inline void CMP(CPU*, Operand);
+static inline void TAX(CPU*, Operand);
+static inline void TAY(CPU*, Operand);
+static inline void TSX(CPU*, Operand);
+static inline void TXA(CPU*, Operand);
+static inline void TXS(CPU*, Operand);
+static inline void TYA(CPU*, Operand);
+static inline void DEC(CPU*, Operand);
+static inline void INC(CPU*, Operand);
+static inline void INX(CPU*, Operand);
+static inline void INY(CPU*, Operand);
+static inline void DEX(CPU*, Operand);
+static inline void BRK(CPU*, Operand);
+static inline void BPL(CPU*, Operand);
+static inline void BIT(CPU*, Operand);
+static inline void BMI(CPU*, Operand);
+static inline void BCC(CPU*, Operand);
+static inline void BCS(CPU*, Operand);
+static inline void BVC(CPU*, Operand);
+static inline void BVS(CPU*, Operand);
+static inline void BEQ(CPU*, Operand);
+static inline void BNE(CPU*, Operand);
+static inline void ORA(CPU*, Operand);
+static inline void ASL(CPU*, Operand);
+static inline void DEY(CPU*, Operand);
+static inline void PLA(CPU*, Operand);
+static inline void PHA(CPU*, Operand);
+static inline void PHP(CPU*, Operand);
+static inline void PLP(CPU*, Operand);
+static inline void CLC(CPU*, Operand);
+static inline void CLD(CPU*, Operand);
+static inline void CLI(CPU*, Operand);
+static inline void CLV(CPU*, Operand);
+static inline void JMP(CPU*, Operand);
+static inline void JSR(CPU*, Operand);
+static inline void RTS(CPU*, Operand);
+static inline void RTI(CPU*, Operand);
+static inline void ROL(CPU*, Operand);
+static inline void SEC(CPU*, Operand);
+static inline void SEI(CPU*, Operand);
+static inline void AND(CPU*, Operand);
+static inline void ROR(CPU*, Operand);
+static inline void EOR(CPU*, Operand);
+static inline void LSR(CPU*, Operand);
+static inline void ADC(CPU*, Operand);
+static inline void SBC(CPU*, Operand);
+static inline void SED(CPU*, Operand);
+static inline void NOP(CPU*, Operand);
 
 /* addressing modes. Get operand based on register values and memory pointer */
-static inline Operand addr_Accumulator(CPU* restrict);
-static inline Operand addr_Absolute(CPU* restrict);
-static inline Operand addr_AbsoluteX(CPU* restrict);
-static inline Operand addr_AbsoluteY(CPU* restrict);
-static inline Operand addr_Immediate(CPU* restrict);
-static inline Operand addr_Implied(CPU* restrict);
-static inline Operand addr_Indirect(CPU* restrict);
-static inline Operand addr_IndirectX(CPU* restrict);
-static inline Operand addr_IndirectY(CPU* restrict);
-static inline Operand addr_Relative(CPU* restrict);
-static inline Operand addr_ZeroPage(CPU* restrict);
-static inline Operand addr_ZeroPageX(CPU* restrict);
-static inline Operand addr_ZeroPageY(CPU* restrict);
+static inline Operand addr_Accumulator(CPU*);
+static inline Operand addr_Absolute(CPU*);
+static inline Operand addr_AbsoluteX(CPU*);
+static inline Operand addr_AbsoluteY(CPU*);
+static inline Operand addr_Immediate(CPU*);
+static inline Operand addr_Implied(CPU*);
+static inline Operand addr_Indirect(CPU*);
+static inline Operand addr_IndirectX(CPU*);
+static inline Operand addr_IndirectY(CPU*);
+static inline Operand addr_Relative(CPU*);
+static inline Operand addr_ZeroPage(CPU*);
+static inline Operand addr_ZeroPageX(CPU*);
+static inline Operand addr_ZeroPageY(CPU*);
 
 /* array of function pointers to opcode routines, indexed by opcode number */
-static const void (*opcodes[256])(CPU* restrict, Operand) =
+static const void (*opcodes[256])(CPU*, Operand) =
 {
     BRK, ORA, NULL, NULL, NULL, ORA, ASL, NULL, PHP, ORA, ASL, NULL, NULL, ORA, ASL, NULL, /* 00-OF */
     BPL, ORA, NULL, NULL, NULL, ORA, ASL, NULL, CLC, ORA, NULL, NULL, NULL, ORA, ASL, NULL, /* 10-1F */
@@ -151,7 +151,7 @@ static const char* mnemonic_str[256] =
 #endif
 
 /* array of function pointers to addressing modes indexed by opcode number */
-static const Operand (*addrmodes[256])(CPU* restrict) =
+static const Operand (*addrmodes[256])(CPU*) =
 {
     addr_Implied, addr_Indirect, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, NULL, addr_Absolute, addr_Absolute, NULL, /* 00-OF */
     addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 10-1F */
@@ -183,12 +183,12 @@ CPU make_cpu(Memory* mem){
     return cpu;
 }
 
-static inline uint8_t memread(CPU* restrict cpu, uint16_t addr){
+static inline uint8_t memread(CPU* cpu, uint16_t addr){
     uint8_t read = *(cpu->mem->map[addr]);
     return read;
 }
 
-static inline uint8_t memreadPC(CPU* restrict cpu){
+static inline uint8_t memreadPC(CPU* cpu){
     /* convenience wrapper to do a read at PC and then increment PC */
     uint16_t addr = cpu->PC;
     uint8_t read = memread(cpu, addr);
@@ -196,7 +196,7 @@ static inline uint8_t memreadPC(CPU* restrict cpu){
     return read;
 }
 
-void reset(CPU* restrict cpu){
+void reset(CPU* cpu){
     /* set PC to address in reset vector */
     cpu->PC = RESET;
     cpu->cycles = STARTUP_CYCLES;
@@ -209,7 +209,7 @@ void reset(CPU* restrict cpu){
     #endif
 }
 
-void FDE(CPU* restrict cpu){
+void FDE(CPU* cpu){
     /* cpu main Fetch-Decode-Execute loop */
     #ifdef DEBUG /* snapshot pre-instruction state (put this in function? TODO)*/
     uint16_t _pc = cpu->PC;
@@ -241,13 +241,13 @@ void FDE(CPU* restrict cpu){
 
 }
 
-static inline Operand addr_Accumulator(CPU* restrict cpu){
+static inline Operand addr_Accumulator(CPU* cpu){
     Operand op;
     op.b1 = 0;
     return op;
 }
 
-static inline Operand addr_Absolute(CPU* restrict cpu){
+static inline Operand addr_Absolute(CPU* cpu){
     uint16_t low = memreadPC(cpu);
     uint16_t high = memreadPC(cpu);
     Operand op;
@@ -255,293 +255,293 @@ static inline Operand addr_Absolute(CPU* restrict cpu){
     return op;
 }
 
-static inline Operand addr_AbsoluteX(CPU* restrict cpu){
+static inline Operand addr_AbsoluteX(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_AbsoluteY(CPU* restrict cpu){
+static inline Operand addr_AbsoluteY(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_Immediate(CPU* restrict cpu){
+static inline Operand addr_Immediate(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_Implied(CPU* restrict cpu){
+static inline Operand addr_Implied(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_Indirect(CPU* restrict cpu){
+static inline Operand addr_Indirect(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_IndirectX(CPU* restrict cpu){
+static inline Operand addr_IndirectX(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_IndirectY(CPU* restrict cpu){
+static inline Operand addr_IndirectY(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_Relative(CPU* restrict cpu){
+static inline Operand addr_Relative(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_ZeroPage(CPU* restrict cpu){
+static inline Operand addr_ZeroPage(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_ZeroPageX(CPU* restrict cpu){
+static inline Operand addr_ZeroPageX(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline Operand addr_ZeroPageY(CPU* restrict cpu){
+static inline Operand addr_ZeroPageY(CPU* cpu){
     Operand op;
     op.b1 =  0;
     return op;
 }
 
-static inline void STA(CPU* restrict cpu, Operand op){
+static inline void STA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void STX(CPU* restrict cpu, Operand op){
+static inline void STX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void STY(CPU* restrict cpu, Operand op){
+static inline void STY(CPU* cpu, Operand op){
     return;
 }
 
-static inline void LDA(CPU* restrict cpu, Operand op){
+static inline void LDA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void LDX(CPU* restrict cpu, Operand op){
+static inline void LDX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void LDY(CPU* restrict cpu, Operand op){
+static inline void LDY(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CPX(CPU* restrict cpu, Operand op){
+static inline void CPX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CPY(CPU* restrict cpu, Operand op){
+static inline void CPY(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CMP(CPU* restrict cpu, Operand op){
+static inline void CMP(CPU* cpu, Operand op){
     return;
 }
 
-static inline void TAX(CPU* restrict cpu, Operand op){
+static inline void TAX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void TAY(CPU* restrict cpu, Operand op){
+static inline void TAY(CPU* cpu, Operand op){
     return;
 }
 
-static inline void TSX(CPU* restrict cpu, Operand op){
+static inline void TSX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void TXA(CPU* restrict cpu, Operand op){
+static inline void TXA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void TXS(CPU* restrict cpu, Operand op){
+static inline void TXS(CPU* cpu, Operand op){
     return;
 }
 
-static inline void TYA(CPU* restrict cpu, Operand op){
+static inline void TYA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void DEC(CPU* restrict cpu, Operand op){
+static inline void DEC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void INC(CPU* restrict cpu, Operand op){
+static inline void INC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void INX(CPU* restrict cpu, Operand op){
+static inline void INX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void INY(CPU* restrict cpu, Operand op){
+static inline void INY(CPU* cpu, Operand op){
     return;
 }
 
-static inline void DEX(CPU* restrict cpu, Operand op){
+static inline void DEX(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BRK(CPU* restrict cpu, Operand op){
+static inline void BRK(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BPL(CPU* restrict cpu, Operand op){
+static inline void BPL(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BIT(CPU* restrict cpu, Operand op){
+static inline void BIT(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BMI(CPU* restrict cpu, Operand op){
+static inline void BMI(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BCC(CPU* restrict cpu, Operand op){
+static inline void BCC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BCS(CPU* restrict cpu, Operand op){
+static inline void BCS(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BVC(CPU* restrict cpu, Operand op){
+static inline void BVC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BVS(CPU* restrict cpu, Operand op){
+static inline void BVS(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BEQ(CPU* restrict cpu, Operand op){
+static inline void BEQ(CPU* cpu, Operand op){
     return;
 }
 
-static inline void BNE(CPU* restrict cpu, Operand op){
+static inline void BNE(CPU* cpu, Operand op){
     return;
 }
 
-static inline void ORA(CPU* restrict cpu, Operand op){
+static inline void ORA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void ASL(CPU* restrict cpu, Operand op){
+static inline void ASL(CPU* cpu, Operand op){
     return;
 }
 
-static inline void DEY(CPU* restrict cpu, Operand op){
+static inline void DEY(CPU* cpu, Operand op){
     return;
 }
 
-static inline void PLA(CPU* restrict cpu, Operand op){
+static inline void PLA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void PHA(CPU* restrict cpu, Operand op){
+static inline void PHA(CPU* cpu, Operand op){
     return;
 }
 
-static inline void PHP(CPU* restrict cpu, Operand op){
+static inline void PHP(CPU* cpu, Operand op){
     return;
 }
 
-static inline void PLP(CPU* restrict cpu, Operand op){
+static inline void PLP(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CLC(CPU* restrict cpu, Operand op){
+static inline void CLC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CLD(CPU* restrict cpu, Operand op){
+static inline void CLD(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CLI(CPU* restrict cpu, Operand op){
+static inline void CLI(CPU* cpu, Operand op){
     return;
 }
 
-static inline void CLV(CPU* restrict cpu, Operand op){
+static inline void CLV(CPU* cpu, Operand op){
     return;
 }
 
-static inline void JMP(CPU* restrict cpu, Operand op){
+static inline void JMP(CPU* cpu, Operand op){
     cpu->PC = op.b2;
     return;
 }
 
-static inline void JSR(CPU* restrict cpu, Operand op){
+static inline void JSR(CPU* cpu, Operand op){
     return;
 }
 
-static inline void RTS(CPU* restrict cpu, Operand op){
+static inline void RTS(CPU* cpu, Operand op){
     return;
 }
 
-static inline void RTI(CPU* restrict cpu, Operand op){
+static inline void RTI(CPU* cpu, Operand op){
     return;
 }
 
-static inline void ROL(CPU* restrict cpu, Operand op){
+static inline void ROL(CPU* cpu, Operand op){
     return;
 }
 
-static inline void SEC(CPU* restrict cpu, Operand op){
+static inline void SEC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void SEI(CPU* restrict cpu, Operand op){
+static inline void SEI(CPU* cpu, Operand op){
     return;
 }
 
-static inline void AND(CPU* restrict cpu, Operand op){
+static inline void AND(CPU* cpu, Operand op){
     return;
 }
 
-static inline void ROR(CPU* restrict cpu, Operand op){
+static inline void ROR(CPU* cpu, Operand op){
     return;
 }
 
-static inline void EOR(CPU* restrict cpu, Operand op){
+static inline void EOR(CPU* cpu, Operand op){
     return;
 }
 
-static inline void LSR(CPU* restrict cpu, Operand op){
+static inline void LSR(CPU* cpu, Operand op){
     return;
 }
 
-static inline void ADC(CPU* restrict cpu, Operand op){
+static inline void ADC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void SBC(CPU* restrict cpu, Operand op){
+static inline void SBC(CPU* cpu, Operand op){
     return;
 }
 
-static inline void SED(CPU* restrict cpu, Operand op){
+static inline void SED(CPU* cpu, Operand op){
     return;
 }
 
-static inline void NOP(CPU* restrict cpu, Operand op){
+static inline void NOP(CPU* cpu, Operand op){
     return;
 }
