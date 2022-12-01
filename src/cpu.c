@@ -7,6 +7,7 @@
 #include "util.h"
 
 static uint8_t memread(CPU*, uint16_t);
+static void memwrite(CPU*, uint16_t, uint8_t);
 
 typedef union Operand{ /* mostly for fun since I never use them */
     uint8_t b1;
@@ -209,6 +210,10 @@ static uint8_t memread(CPU* cpu, uint16_t addr){
     return read;
 }
 
+static void memwrite(CPU* cpu, uint16_t addr, uint8_t val){
+    *(cpu->mem->map[addr]) = val;
+}
+
 static uint8_t memreadPC(CPU* cpu){
     /* convenience wrapper to do a read at PC and then increment PC */
     uint16_t addr = cpu->PC;
@@ -284,6 +289,7 @@ void FDE(CPU* cpu){
 }
 
 static Operand addr_Accumulator(CPU* cpu){
+    /* nothing */
     Operand op;
     op.b1 = 0;
     return op;
@@ -316,6 +322,7 @@ static Operand addr_Immediate(CPU* cpu){
 }
 
 static Operand addr_Implied(CPU* cpu){
+    /* nothing */
     Operand op;
     op.b1 =  0;
     return op;
@@ -346,8 +353,9 @@ static Operand addr_Relative(CPU* cpu){
 }
 
 static Operand addr_ZeroPage(CPU* cpu){
+    uint16_t low = memreadPC(cpu);
     Operand op;
-    op.b1 =  0;
+    op.b2 =  low;
     return op;
 }
 
@@ -364,26 +372,35 @@ static Operand addr_ZeroPageY(CPU* cpu){
 }
 
 static void STA(CPU* cpu, Operand op){
+    /* store A at address op */
+    memwrite(cpu, op.b2, cpu->A);
     return;
 }
 
 static void STX(CPU* cpu, Operand op){
+    /* store X at address op */
+    memwrite(cpu, op.b2, cpu->X);
     return;
 }
 
 static void STY(CPU* cpu, Operand op){
+    /* store Y at address op */
+    memwrite(cpu, op.b2, cpu->Y);
     return;
 }
 
 static void LDA(CPU* cpu, Operand op){
+    cpu->A = op.b1;
     return;
 }
 
 static void LDX(CPU* cpu, Operand op){
+    cpu->X = op.b1;
     return;
 }
 
 static void LDY(CPU* cpu, Operand op){
+    cpu->Y = op.b1;
     return;
 }
 
