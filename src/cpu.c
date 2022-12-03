@@ -10,6 +10,12 @@
 static uint8_t memread(CPU*, uint16_t);
 static void memwrite(CPU*, uint16_t, uint8_t);
 
+static void stack_push(CPU*, uint8_t);
+static uint8_t stack_pull(CPU*);
+
+static void update_Z(CPU*, uint8_t);
+static void set_C(CPU*, bool set);
+
 static void STA(CPU*, uint16_t);
 static void STX(CPU*, uint16_t);
 static void STY(CPU*, uint16_t);
@@ -41,7 +47,6 @@ static void BVS(CPU*, uint16_t);
 static void BEQ(CPU*, uint16_t);
 static void BNE(CPU*, uint16_t);
 static void ORA(CPU*, uint16_t);
-static void ASL(CPU*, uint16_t);
 static void DEY(CPU*, uint16_t);
 static void PLA(CPU*, uint16_t);
 static void PHA(CPU*, uint16_t);
@@ -55,17 +60,22 @@ static void JMP(CPU*, uint16_t);
 static void JSR(CPU*, uint16_t);
 static void RTS(CPU*, uint16_t);
 static void RTI(CPU*, uint16_t);
-static void ROL(CPU*, uint16_t);
 static void SEC(CPU*, uint16_t);
 static void SEI(CPU*, uint16_t);
 static void AND(CPU*, uint16_t);
-static void ROR(CPU*, uint16_t);
 static void EOR(CPU*, uint16_t);
-static void LSR(CPU*, uint16_t);
 static void ADC(CPU*, uint16_t);
 static void SBC(CPU*, uint16_t);
 static void SED(CPU*, uint16_t);
 static void NOP(CPU*, uint16_t);
+static void ASL(CPU*, uint16_t);
+static void LSR(CPU*, uint16_t);
+static void ROL(CPU*, uint16_t);
+static void ROR(CPU*, uint16_t);
+static void ASL_A(CPU*, uint16_t);
+static void LSR_A(CPU*, uint16_t);
+static void ROL_A(CPU*, uint16_t);
+static void ROR_A(CPU*, uint16_t);
 
 /* addressing modes. Get operand based on register values and memory pointer */
 static uint16_t addr_Accumulator(CPU*);
@@ -85,13 +95,13 @@ static uint16_t addr_ZeroPageY(CPU*);
 /* array of function pointers to opcode routines, indexed by opcode number */
 static const void (*opcodes[256])(CPU*, uint16_t) =
 {
-    BRK, ORA, NULL, NULL, NULL, ORA, ASL, NULL, PHP, ORA, ASL, NULL, NULL, ORA, ASL, NULL, /* 00-OF */
+    BRK, ORA, NULL, NULL, NULL, ORA, ASL, NULL, PHP, ORA, ASL_A, NULL, NULL, ORA, ASL, NULL, /* 00-OF */
     BPL, ORA, NULL, NULL, NULL, ORA, ASL, NULL, CLC, ORA, NULL, NULL, NULL, ORA, ASL, NULL, /* 10-1F */
-    JSR, AND, NULL, NULL, BIT, AND, ROL, NULL, PLP, AND, ROL, NULL, BIT, AND, ROL, NULL, /* 20-2F */
+    JSR, AND, NULL, NULL, BIT, AND, ROL, NULL, PLP, AND, ROL_A, NULL, BIT, AND, ROL, NULL, /* 20-2F */
     BMI, AND, NULL, NULL, NULL, AND, ROL, NULL, SEC, AND, NULL, NULL, NULL, AND, ROL, NULL, /* 30-3F */
-    RTI, EOR, NULL, NULL, NULL, EOR, LSR, NULL, PHA, EOR, LSR, NULL, JMP, EOR, LSR, NULL, /* 40-4F */
+    RTI, EOR, NULL, NULL, NULL, EOR, LSR, NULL, PHA, EOR, LSR_A, NULL, JMP, EOR, LSR, NULL, /* 40-4F */
     BVC, EOR, NULL, NULL, NULL, EOR, LSR, NULL, CLI, EOR, NULL, NULL, NULL, EOR, LSR, NULL, /* 50-5F */
-    RTS, ADC, NULL, NULL, NULL, ADC, ROR, NULL, PLA, ADC, ROR, NULL, JMP, ADC, ROR, NULL, /* 60-6F */
+    RTS, ADC, NULL, NULL, NULL, ADC, ROR, NULL, PLA, ADC, ROR_A, NULL, JMP, ADC, ROR, NULL, /* 60-6F */
     BVS, ADC, NULL, NULL, NULL, ADC, ROR, NULL, SEI, ADC, NULL, NULL, NULL, ADC, ROR, NULL, /* 70-7F */
     NULL, STA, NULL, NULL, STY, STA, STX, NULL, DEY, NULL, TXA, NULL, STY, STA, STX, NULL, /* 80-8F */
     BCC, STA, NULL, NULL, STY, STA, STX, NULL, TYA, STA, TXS, NULL, NULL, STA, NULL, NULL, /* 90-9F */
@@ -203,12 +213,20 @@ CPU make_cpu(Memory* mem){
 }
 
 static uint8_t memread(CPU* cpu, uint16_t addr){
-    uint8_t read = *(cpu->mem->map[addr]);
-    return read;
+    return *(cpu->mem->map[addr]);
 }
 
 static void memwrite(CPU* cpu, uint16_t addr, uint8_t val){
+    /* TODO Guard writable range on map (can't write rom...) */
     *(cpu->mem->map[addr]) = val;
+}
+
+static void stack_push(CPU* cpu, uint8_t val){
+    memwrite(cpu, STACK_BOTTOM + cpu->SP--, val);
+}
+
+static uint8_t stack_pull(CPU* cpu){
+    return memread(cpu, STACK_BOTTOM + ++cpu->SP);
 }
 
 static uint8_t memreadPC(CPU* cpu){
@@ -248,7 +266,7 @@ void FDE(CPU* cpu){
 
     uint8_t opcode = memreadPC(cpu); 
     if (addrmodes[opcode] == NULL)
-        err_exit("fatal: CPU: Illegal opcode %02x at location %04X\n", opcode, cpu->PC-1);
+        err_exit("CPU: Illegal opcode %02x at location %04X", opcode, cpu->PC-1);
     uint16_t op;
     op = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly and in debug */
 
@@ -268,11 +286,11 @@ void FDE(CPU* cpu){
 
     switch(n_oper){
         case 0:
-            fprintf(stdout, "%04X  %02X        %s                                 A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", 
+            fprintf(stdout, "%04X  %02X        %s                             A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", 
                     _pc, opcode, mnemonic, _a, _x, _y, _p, _sp, cpu->cycles);
             break;
         case 1:
-            fprintf(stdout, "%04X  %02X %02X     %s #$%02X                           A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", 
+            fprintf(stdout, "%04X  %02X %02X     %s #$%02X                        A:%02X X:%02X Y:%02X P:%02X SP:%02X CYC:%lu\n", 
                     _pc, opcode, _oper_low, mnemonic, _oper_low, _a, _x, _y, _p, _sp, cpu->cycles);
             break;
         case 2:
@@ -286,6 +304,22 @@ void FDE(CPU* cpu){
     cpu->pagecross = false;
     cpu->cycles = cpu->cycles + cycles[opcode];
 
+}
+
+static void set_C(CPU* cpu, bool set){
+    /* set C to bool set */
+    if (set)
+        cpu->P = 1 | cpu->P;
+    else
+        cpu->P = ~1 & cpu->P;
+}
+
+static void update_Z(CPU* cpu, uint8_t res){
+    /* set Z if res is 0, clear otherwise */
+    if (res == 0)
+        cpu->P = (1 << 1) | cpu->P;
+    else
+        cpu->P = ~(1 << 1) & cpu->P;
 }
 
 static uint16_t addr_Accumulator(CPU* cpu){
@@ -341,8 +375,8 @@ static uint16_t addr_IndirectY(CPU* cpu){
 
 static uint16_t addr_Relative(CPU* cpu){
     /* twos complement signed byte */
-    int16_t rel = ~memreadPC(cpu)+1;
-    uint16_t addr = (uint16_t)((((int16_t)cpu->PC) + rel)); /* TODO double check this whole thing */
+    int8_t rel = memreadPC(cpu);
+    uint16_t addr = ((int16_t)cpu->PC) + rel; /* TODO double check this whole thing */
     return addr;
 }
 
@@ -380,16 +414,19 @@ static void STY(CPU* cpu, uint16_t op){
 
 static void LDA(CPU* cpu, uint16_t op){
     cpu->A = memread(cpu, op);
+    update_Z(cpu, cpu->A);
     return;
 }
 
 static void LDX(CPU* cpu, uint16_t op){
     cpu->X = memread(cpu, op);
+    update_Z(cpu, cpu->X);
     return;
 }
 
 static void LDY(CPU* cpu, uint16_t op){
     cpu->Y = memread(cpu, op);
+    update_Z(cpu, cpu->Y);
     return;
 }
 
@@ -466,11 +503,22 @@ static void BMI(CPU* cpu, uint16_t op){
 }
 
 static void BCC(CPU* cpu, uint16_t op){
-    return;
+    if ((1 & cpu->P) != 0) 
+        return;
+    cpu->PC = op;
+    cpu->cycles++;
+    if (cpu->pagecross) 
+        cpu->cycles++;
 }
 
 static void BCS(CPU* cpu, uint16_t op){
-    return;
+    printf("cpu P is %02X and this op is %02X\n", cpu->P, 1 & cpu->P);
+    if ((1 & cpu->P) == 0) 
+        return;
+    cpu->PC = op;
+    cpu->cycles++;
+    if (cpu->pagecross) 
+        cpu->cycles++;
 }
 
 static void BVC(CPU* cpu, uint16_t op){
@@ -493,15 +541,13 @@ static void ORA(CPU* cpu, uint16_t op){
     return;
 }
 
-static void ASL(CPU* cpu, uint16_t op){
-    return;
-}
-
 static void DEY(CPU* cpu, uint16_t op){
     return;
 }
 
 static void PLA(CPU* cpu, uint16_t op){
+    cpu->A = stack_pull(cpu);
+    update_Z(cpu, cpu->A);
     return;
 }
 
@@ -518,7 +564,7 @@ static void PLP(CPU* cpu, uint16_t op){
 }
 
 static void CLC(CPU* cpu, uint16_t op){
-    return;
+    set_C(cpu, false);
 }
 
 static void CLD(CPU* cpu, uint16_t op){
@@ -539,6 +585,11 @@ static void JMP(CPU* cpu, uint16_t op){
 }
 
 static void JSR(CPU* cpu, uint16_t op){
+    uint8_t low = 0x00FF | cpu->PC;
+    uint8_t high = cpu->PC >> 8;
+    stack_push(cpu, high);
+    stack_push(cpu, low);
+    cpu->PC = op;
     return;
 }
 
@@ -550,12 +601,8 @@ static void RTI(CPU* cpu, uint16_t op){
     return;
 }
 
-static void ROL(CPU* cpu, uint16_t op){
-    return;
-}
-
 static void SEC(CPU* cpu, uint16_t op){
-    return;
+    set_C(cpu, true);
 }
 
 static void SEI(CPU* cpu, uint16_t op){
@@ -566,15 +613,7 @@ static void AND(CPU* cpu, uint16_t op){
     return;
 }
 
-static void ROR(CPU* cpu, uint16_t op){
-    return;
-}
-
 static void EOR(CPU* cpu, uint16_t op){
-    return;
-}
-
-static void LSR(CPU* cpu, uint16_t op){
     return;
 }
 
@@ -591,5 +630,37 @@ static void SED(CPU* cpu, uint16_t op){
 }
 
 static void NOP(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void ASL(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void LSR(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void ROL(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void ROR(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void ASL_A(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void LSR_A(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void ROL_A(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void ROR_A(CPU* cpu, uint16_t op){
     return;
 }

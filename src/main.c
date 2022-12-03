@@ -15,7 +15,7 @@ int main(int argc, char *const argv[]){
 
     Options* options = parse_options(argc, argv);
     if (options->rom_filename == NULL) 
-        err_exit("fatal: No ROM provided\n");
+        err_exit("No ROM provided");
 
     printf("Power on\n");
     NES nes = power_on(options->rom_filename);

@@ -10,14 +10,18 @@
 #define RESET 0xFFFC
 #define IRQ 0xFFFE 
 
+/* the stack grows down from 0x1FF */
+#define STACK_BOTTOM 0x100
+
 #define STATUS_INIT 0x24 
 /* Regarding this from nesdev wiki: "The golden log of nestest differs from real state 0x34 in the irrelevant bits 5 and 4 of P"...
    To elaborate: My understanding is that we need IRQ_DISABLE bit 2 set and bits 7,6,3,1,0 not set.
    0x34 (0011 0100) or 0x04 (0000 0100) are also valid initial power-on states for the status register */
 
 #define SP_INIT 0xFD
-#define STARTUP_CYCLES 7 
+
 /* 7 cycles to first instruction to match with nestest log */
+#define STARTUP_CYCLES 7 
 
 typedef struct CPU {
 
