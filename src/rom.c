@@ -6,6 +6,8 @@
 #include "rom.h"
 #include "util.h"
 
+#define HEADER_LEN 16
+
 const InesHeader read_ines_header(const uint8_t*);
 void validate_ines_header(const InesHeader*, const char*);
 void map_rom(NES*, const InesHeader*, uint8_t*);
@@ -26,9 +28,9 @@ const InesHeader read_ines_header(const uint8_t* header){
 
 void validate_ines_header(const InesHeader* header, const char* filename){
     if(header->valid_signature != true)
-        err_exit("fatal: ROM: iNES signature mismatch while loading %s\n", filename);
+        err_exit("ROM: iNES signature mismatch while loading %s", filename);
     if(header->mapper != 0)
-        err_exit("fatal: ROM: Mapper %d not supported while loading %s\n", header->mapper, filename);
+        err_exit("ROM: Mapper %d not supported while loading %s", header->mapper, filename);
     /* TODO update validation based on what we do and don't support. Maybe just return error to caller */
 }
 
@@ -36,15 +38,24 @@ const InesHeader load_rom(NES* nes, const char* filename){
 
     FILE* rom = fopen(filename, "rb");
     if (rom == NULL)
-        err_exit("fatal: Error opening file %s: %s\n", filename, strerror(errno));
+        err_exit("ROM: Error opening file %s: %s", filename, strerror(errno));
 
-    /* TODO check file length, reads */
-    uint8_t header_bytes[16];
-    fread(header_bytes, 1, 16, rom);
+    size_t read;
+
+    /* read+validate header */
+    uint8_t header_bytes[HEADER_LEN];
+    read = fread(header_bytes, 1, HEADER_LEN, rom);
+    if (read != HEADER_LEN) 
+        err_exit("ROM: Couldn't read header from %s", filename);
     const InesHeader header = read_ines_header(header_bytes);
     validate_ines_header(&header, filename);
+
+    /* read prgrom */
     uint8_t data[header.prgrom*PRGROM_PAGESIZE]; /* TODO consider heap alloc if these get several times bigger */
-    fread(data, 1, header.prgrom*PRGROM_PAGESIZE, rom); /* TODO wrap freads for single size read */
+    read = fread(data, 1, header.prgrom*PRGROM_PAGESIZE, rom); /* TODO wrap freads for single size read */
+    if (read != header.prgrom*PRGROM_PAGESIZE) 
+        err_exit("ROM: PRGROM read failed while loading %s. Read %d of %d bytes specified in header", 
+                  read, header.prgrom*PRGROM_PAGESIZE);
     map_rom(nes, &header, data);
     fclose(rom);
 
