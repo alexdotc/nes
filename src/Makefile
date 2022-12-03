@@ -1,6 +1,6 @@
 binout = nes.out
 compiler = gcc
-flags := $(compiler) -DDEBUG -Wall -Werror -std=c11
+flags := $(compiler) -DDEBUG -Wall -Werror -std=c11 -O2
 
 default: main.o cpu.o mem.o nes.o rom.o util.o
 	$(flags) main.o cpu.o mem.o nes.o rom.o util.o -o $(binout)
