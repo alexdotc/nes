@@ -27,4 +27,4 @@ clean:
 	rm -fv *.o *.out
 
 memcheck: default
-	valgrind --tool=memcheck --leak-check=full ./$(binout)
+	valgrind --tool=memcheck --leak-check=full ./$(binout) $$MEMCHECK_ROM

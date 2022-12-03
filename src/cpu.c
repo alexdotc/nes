@@ -512,7 +512,6 @@ static void BCC(CPU* cpu, uint16_t op){
 }
 
 static void BCS(CPU* cpu, uint16_t op){
-    printf("cpu P is %02X and this op is %02X\n", cpu->P, 1 & cpu->P);
     if ((1 & cpu->P) == 0) 
         return;
     cpu->PC = op;
