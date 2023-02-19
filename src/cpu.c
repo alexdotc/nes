@@ -17,6 +17,8 @@ static void update_Z(CPU*, uint8_t);
 static void update_N(CPU*, int8_t);
 static void set_C(CPU*, bool set);
 static void set_V(CPU*, bool set);
+static void set_D(CPU*, bool set);
+static void set_I(CPU*, bool set);
 
 static void check_pagecross(CPU*, uint16_t);
 
@@ -321,6 +323,22 @@ static void set_C(CPU* cpu, bool set){
         cpu->P = ~1 & cpu->P;
 }
 
+static void set_I(CPU* cpu, bool set){
+    /* set I to bool set */
+    if (set)
+        cpu->P = (1 << 2) | cpu->P;
+    else
+        cpu->P = ~(1 << 2) & cpu->P;
+}
+
+static void set_D(CPU* cpu, bool set){
+    /* set D to bool set. 2A03 does not use this 6502 flag */
+    if (set)
+        cpu->P = (1 << 3) | cpu->P;
+    else
+        cpu->P = ~(1 << 3) & cpu->P;
+}
+
 static void set_V(CPU* cpu, bool set){
     /* set V to bool set */
     if (set)
@@ -620,7 +638,6 @@ static void PLA(CPU* cpu, uint16_t op){
     cpu->A = stack_pull(cpu);
     update_Z(cpu, cpu->A);
     update_N(cpu, cpu->A);
-    return;
 }
 
 static void PHA(CPU* cpu, uint16_t op){
@@ -640,33 +657,33 @@ static void CLC(CPU* cpu, uint16_t op){
 }
 
 static void CLD(CPU* cpu, uint16_t op){
-    return;
+    set_D(cpu, false);
 }
 
 static void CLI(CPU* cpu, uint16_t op){
-    return;
+    set_I(cpu, false);
 }
 
 static void CLV(CPU* cpu, uint16_t op){
-    return;
+    set_V(cpu, false);
 }
 
 static void JMP(CPU* cpu, uint16_t op){
     cpu->PC = op;
-    return;
 }
 
 static void JSR(CPU* cpu, uint16_t op){
-    uint8_t low = 0x00FF | cpu->PC;
+    uint8_t low = 0x00FF & cpu->PC;
     uint8_t high = cpu->PC >> 8;
     stack_push(cpu, high);
     stack_push(cpu, low);
     cpu->PC = op;
-    return;
 }
 
 static void RTS(CPU* cpu, uint16_t op){
-    return;
+    uint8_t low = stack_pull(cpu);
+    uint8_t high = stack_pull(cpu);
+    cpu->PC = ((uint16_t) high << 8) | low;
 }
 
 static void RTI(CPU* cpu, uint16_t op){
@@ -678,7 +695,7 @@ static void SEC(CPU* cpu, uint16_t op){
 }
 
 static void SEI(CPU* cpu, uint16_t op){
-    return;
+    set_I(cpu, true);
 }
 
 static void AND(CPU* cpu, uint16_t op){
@@ -698,7 +715,7 @@ static void SBC(CPU* cpu, uint16_t op){
 }
 
 static void SED(CPU* cpu, uint16_t op){
-    return;
+    set_D(cpu, true);
 }
 
 static void NOP(CPU* cpu, uint16_t op){
