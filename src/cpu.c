@@ -16,6 +16,7 @@ static uint8_t stack_pull(CPU*);
 static void update_Z(CPU*, uint8_t);
 static void update_N(CPU*, int8_t);
 static void set_C(CPU*, bool set);
+static void set_V(CPU*, bool set);
 
 static void check_pagecross(CPU*, uint16_t);
 
@@ -320,6 +321,14 @@ static void set_C(CPU* cpu, bool set){
         cpu->P = ~1 & cpu->P;
 }
 
+static void set_V(CPU* cpu, bool set){
+    /* set V to bool set */
+    if (set)
+        cpu->P = (1 << 6) | cpu->P;
+    else
+        cpu->P = ~(1 << 6) & cpu->P;
+}
+
 static void update_Z(CPU* cpu, uint8_t res){
     /* set Z if res is 0, clear otherwise */
     if (res == 0)
@@ -515,7 +524,7 @@ static void BIT(CPU* cpu, uint16_t op){
     uint8_t read = memread(cpu, op);
     update_Z(cpu, read & cpu->A);
     update_N(cpu, read);
-    cpu->P |= read & (1 << 6);
+    set_V(cpu, read & (1 << 6));
     return;
 }
 
@@ -544,10 +553,24 @@ static void BCS(CPU* cpu, uint16_t op){
 }
 
 static void BVC(CPU* cpu, uint16_t op){
+    if (((1 << 6) & cpu->P) != 0) 
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle if branch taken */
+    cpu->cycles++;
     return;
 }
 
 static void BVS(CPU* cpu, uint16_t op){
+    if (((1 << 6) & cpu->P) == 0) 
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle if branch taken */
+    cpu->cycles++;
     return;
 }
 
