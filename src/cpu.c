@@ -14,7 +14,10 @@ static void stack_push(CPU*, uint8_t);
 static uint8_t stack_pull(CPU*);
 
 static void update_Z(CPU*, uint8_t);
+static void update_N(CPU*, int8_t);
 static void set_C(CPU*, bool set);
+
+static void check_pagecross(CPU*, uint16_t);
 
 static void STA(CPU*, uint16_t);
 static void STX(CPU*, uint16_t);
@@ -206,8 +209,7 @@ CPU make_cpu(Memory* mem){
     uint8_t SP = SP_INIT;
     uint16_t PC = 0;
     uint64_t cycles = STARTUP_CYCLES;
-    bool pagecross = false;
-    CPU cpu = { cycles,pagecross,A,X,Y,P,SP,PC,mem };
+    CPU cpu = { cycles,A,X,Y,P,SP,PC,mem };
 
     return cpu;
 }
@@ -241,7 +243,6 @@ void reset(CPU* cpu){
     /* set PC to address in reset vector */
     cpu->PC = RESET;
     cpu->cycles = STARTUP_CYCLES;
-    cpu->pagecross = false;
     uint16_t low = memreadPC(cpu);
     uint16_t high = memreadPC(cpu);
 
@@ -301,9 +302,14 @@ void FDE(CPU* cpu){
 
     opcodes[opcode](cpu, op);
 
-    cpu->pagecross = false;
     cpu->cycles = cpu->cycles + cycles[opcode];
 
+}
+
+static void check_pagecross(CPU* cpu, uint16_t target){
+    /* if high byte different */
+    if ((target & 0xFF00) != (cpu->PC & 0xFF00))
+        cpu->cycles++;
 }
 
 static void set_C(CPU* cpu, bool set){
@@ -320,6 +326,14 @@ static void update_Z(CPU* cpu, uint8_t res){
         cpu->P = (1 << 1) | cpu->P;
     else
         cpu->P = ~(1 << 1) & cpu->P;
+}
+
+static void update_N(CPU* cpu, int8_t res){
+    /* set N if res is negative, clear otherwise */
+    if (res < 0)
+        cpu->P = (1 << 7) | cpu->P;
+    else
+        cpu->P = ~(1 << 7) & cpu->P;
 }
 
 static uint16_t addr_Accumulator(CPU* cpu){
@@ -376,7 +390,7 @@ static uint16_t addr_IndirectY(CPU* cpu){
 static uint16_t addr_Relative(CPU* cpu){
     /* twos complement signed byte */
     int8_t rel = memreadPC(cpu);
-    uint16_t addr = ((int16_t)cpu->PC) + rel; /* TODO double check this whole thing */
+    uint16_t addr = ((int16_t)cpu->PC) + rel;
     return addr;
 }
 
@@ -415,18 +429,21 @@ static void STY(CPU* cpu, uint16_t op){
 static void LDA(CPU* cpu, uint16_t op){
     cpu->A = memread(cpu, op);
     update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
     return;
 }
 
 static void LDX(CPU* cpu, uint16_t op){
     cpu->X = memread(cpu, op);
     update_Z(cpu, cpu->X);
+    update_N(cpu, cpu->X);
     return;
 }
 
 static void LDY(CPU* cpu, uint16_t op){
     cpu->Y = memread(cpu, op);
     update_Z(cpu, cpu->Y);
+    update_N(cpu, cpu->Y);
     return;
 }
 
@@ -505,19 +522,21 @@ static void BMI(CPU* cpu, uint16_t op){
 static void BCC(CPU* cpu, uint16_t op){
     if ((1 & cpu->P) != 0) 
         return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
     cpu->PC = op;
+    /* +1 cycle if branch taken */
     cpu->cycles++;
-    if (cpu->pagecross) 
-        cpu->cycles++;
 }
 
 static void BCS(CPU* cpu, uint16_t op){
     if ((1 & cpu->P) == 0) 
         return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
     cpu->PC = op;
+    /* +1 cycle if branch taken */
     cpu->cycles++;
-    if (cpu->pagecross) 
-        cpu->cycles++;
 }
 
 static void BVC(CPU* cpu, uint16_t op){
@@ -529,11 +548,23 @@ static void BVS(CPU* cpu, uint16_t op){
 }
 
 static void BEQ(CPU* cpu, uint16_t op){
-    return;
+    if (((1 << 1) & cpu->P) == 0) 
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle if branch taken */
+    cpu->cycles++;
 }
 
 static void BNE(CPU* cpu, uint16_t op){
-    return;
+    if (((1 << 1) & cpu->P) != 0) 
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle if branch taken */
+    cpu->cycles++;
 }
 
 static void ORA(CPU* cpu, uint16_t op){
@@ -547,6 +578,7 @@ static void DEY(CPU* cpu, uint16_t op){
 static void PLA(CPU* cpu, uint16_t op){
     cpu->A = stack_pull(cpu);
     update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
     return;
 }
 

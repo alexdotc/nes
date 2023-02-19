@@ -27,7 +27,6 @@ typedef struct CPU {
 
     /* internal state */
     uint64_t cycles;
-    bool pagecross;
 
     /* registers */
     uint8_t A, X, Y, P, SP;
