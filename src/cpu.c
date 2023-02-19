@@ -376,10 +376,12 @@ static uint16_t addr_Absolute(CPU* cpu){
 }
 
 static uint16_t addr_AbsoluteX(CPU* cpu){
+    err_exit("CPU: Unimplemented addressing mode AbsoluteX at location %04X", cpu->PC-1);
     return 0;
 }
 
 static uint16_t addr_AbsoluteY(CPU* cpu){
+    err_exit("CPU: Unimplemented addressing mode AbsoluteY at location %04X", cpu->PC-1);
     return 0;
 }
 
@@ -407,10 +409,12 @@ static uint16_t addr_Indirect(CPU* cpu){
 }
 
 static uint16_t addr_IndirectX(CPU* cpu){
+    err_exit("CPU: Unimplemented addressing mode IndirectX at location %04X", cpu->PC-1);
     return 0;
 }
 
 static uint16_t addr_IndirectY(CPU* cpu){
+    err_exit("CPU: Unimplemented addressing mode IndirectY at location %04X", cpu->PC-1);
     return 0;
 }
 
@@ -428,10 +432,12 @@ static uint16_t addr_ZeroPage(CPU* cpu){
 }
 
 static uint16_t addr_ZeroPageX(CPU* cpu){
+    err_exit("CPU: Unimplemented addressing mode ZeroPageX at location %04X", cpu->PC-1);
     return 0;
 }
 
 static uint16_t addr_ZeroPageY(CPU* cpu){
+    err_exit("CPU: Unimplemented addressing mode ZeroPageY at location %04X", cpu->PC-1);
     return 0;
 }
 
@@ -483,7 +489,11 @@ static void CPY(CPU* cpu, uint16_t op){
 }
 
 static void CMP(CPU* cpu, uint16_t op){
-    return;
+    uint8_t cmp = cpu->A - memread(cpu, op);
+    update_N(cpu, cmp);
+    update_Z(cpu, cmp);
+    set_C(cpu, cmp <= cpu->A);
+    
 }
 
 static void TAX(CPU* cpu, uint16_t op){
@@ -641,17 +651,23 @@ static void PLA(CPU* cpu, uint16_t op){
 }
 
 static void PHA(CPU* cpu, uint16_t op){
-    return;
+    stack_push(cpu, cpu->A);
 }
 
 static void PHP(CPU* cpu, uint16_t op){
-    /* status register value is pushed to stack with bits 4 and 5 set */
-    stack_push(cpu, cpu->P | (3 << 4));
+    /* status register value is pushed to stack with bits 4 and 5 set
+       Note that bit 5 should always be set for convenience in our case
+       since it doesn't exist in real hardware */
+    stack_push(cpu, cpu->P | (1 << 4));
 }
 
 static void PLP(CPU* cpu, uint16_t op){
-    /* status register value is pulled from stack with bits 4 and 5 ignored */
-    cpu->P = stack_pull(cpu) & ~(3 << 4);
+    /* status register value is pulled from stack with
+       bit 4 clear. Note that bit 5 should always be set for
+       convenience in our case since it doesn't exist in real hardware */
+    cpu->P = stack_pull(cpu) & ~(1 << 4);
+    cpu->P |= (1 << 5);
+
 }
 
 static void CLC(CPU* cpu, uint16_t op){
@@ -701,7 +717,9 @@ static void SEI(CPU* cpu, uint16_t op){
 }
 
 static void AND(CPU* cpu, uint16_t op){
-    return;
+    cpu->A &= memread(cpu, op);
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void EOR(CPU* cpu, uint16_t op){
