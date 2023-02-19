@@ -517,6 +517,13 @@ static void BRK(CPU* cpu, uint16_t op){
 }
 
 static void BPL(CPU* cpu, uint16_t op){
+    if (((1 << 7) & cpu->P) != 0) 
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle if branch taken */
+    cpu->cycles++;
     return;
 }
 
@@ -529,6 +536,13 @@ static void BIT(CPU* cpu, uint16_t op){
 }
 
 static void BMI(CPU* cpu, uint16_t op){
+    if (((1 << 7) & cpu->P) == 0) 
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle if branch taken */
+    cpu->cycles++;
     return;
 }
 
