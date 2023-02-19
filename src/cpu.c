@@ -645,11 +645,13 @@ static void PHA(CPU* cpu, uint16_t op){
 }
 
 static void PHP(CPU* cpu, uint16_t op){
-    return;
+    /* status register value is pushed to stack with bits 4 and 5 set */
+    stack_push(cpu, cpu->P | (3 << 4));
 }
 
 static void PLP(CPU* cpu, uint16_t op){
-    return;
+    /* status register value is pulled from stack with bits 4 and 5 ignored */
+    cpu->P = stack_pull(cpu) & ~(3 << 4);
 }
 
 static void CLC(CPU* cpu, uint16_t op){
