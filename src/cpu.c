@@ -512,6 +512,10 @@ static void BPL(CPU* cpu, uint16_t op){
 }
 
 static void BIT(CPU* cpu, uint16_t op){
+    uint8_t read = memread(cpu, op);
+    update_Z(cpu, read & cpu->A);
+    update_N(cpu, read);
+    cpu->P |= read & (1 << 6);
     return;
 }
 
