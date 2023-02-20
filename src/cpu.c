@@ -637,7 +637,9 @@ static void BNE(CPU* cpu, uint16_t op){
 }
 
 static void ORA(CPU* cpu, uint16_t op){
-    return;
+    cpu->A |= memread(cpu, op);
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void DEY(CPU* cpu, uint16_t op){
@@ -658,7 +660,7 @@ static void PHP(CPU* cpu, uint16_t op){
     /* status register value is pushed to stack with bits 4 and 5 set
        Note that bit 5 should always be set for convenience in our case
        since it doesn't exist in real hardware */
-    stack_push(cpu, cpu->P | (1 << 4));
+    stack_push(cpu, cpu->P | (3 << 4));
 }
 
 static void PLP(CPU* cpu, uint16_t op){
@@ -723,7 +725,9 @@ static void AND(CPU* cpu, uint16_t op){
 }
 
 static void EOR(CPU* cpu, uint16_t op){
-    return;
+    cpu->A ^= memread(cpu, op);
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void ADC(CPU* cpu, uint16_t op){
