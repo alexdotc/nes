@@ -731,6 +731,19 @@ static void EOR(CPU* cpu, uint16_t op){
 }
 
 static void ADC(CPU* cpu, uint16_t op){
+    uint8_t read = memread(cpu, op);
+    uint8_t carry_in = cpu->P & 1;
+    uint8_t res = carry_in + read + cpu->A;
+    /* read and accum both have different signs than res.
+       signed addition overflowed */
+    bool overflow = ((read >> 7) ^ (res >> 7)) & ((cpu->A >> 7) ^ (res >> 7));
+    /* unsigned addition overflowed */
+    bool carry_out = (res < read || (res <= read && carry_in == 1));
+    cpu->A = res;
+    set_V(cpu, overflow);
+    set_C(cpu, carry_out);
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
     return;
 }
 
