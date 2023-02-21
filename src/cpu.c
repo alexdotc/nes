@@ -13,12 +13,10 @@ static void memwrite(CPU*, uint16_t, uint8_t);
 static void stack_push(CPU*, uint8_t);
 static uint8_t stack_pull(CPU*);
 
+typedef enum flags{C = 0, I = 2, D = 3, V = 6} flags; 
+static void set_flag(flags, CPU*, bool);
 static void update_Z(CPU*, uint8_t);
 static void update_N(CPU*, int8_t);
-static void set_C(CPU*, bool set);
-static void set_V(CPU*, bool set);
-static void set_D(CPU*, bool set);
-static void set_I(CPU*, bool set);
 
 static void check_pagecross(CPU*, uint16_t);
 
@@ -315,36 +313,12 @@ static void check_pagecross(CPU* cpu, uint16_t target){
         cpu->cycles++;
 }
 
-static void set_C(CPU* cpu, bool set){
-    /* set C to bool set */
+static void set_flag(flags bitpos, CPU* cpu, bool set){
+    /* set bitpos of cpu's status register to bool set */
     if (set)
-        cpu->P = 1 | cpu->P;
+        cpu->P = (1 << bitpos) | cpu->P;
     else
-        cpu->P = ~1 & cpu->P;
-}
-
-static void set_I(CPU* cpu, bool set){
-    /* set I to bool set */
-    if (set)
-        cpu->P = (1 << 2) | cpu->P;
-    else
-        cpu->P = ~(1 << 2) & cpu->P;
-}
-
-static void set_D(CPU* cpu, bool set){
-    /* set D to bool set. 2A03 does not use this 6502 flag */
-    if (set)
-        cpu->P = (1 << 3) | cpu->P;
-    else
-        cpu->P = ~(1 << 3) & cpu->P;
-}
-
-static void set_V(CPU* cpu, bool set){
-    /* set V to bool set */
-    if (set)
-        cpu->P = (1 << 6) | cpu->P;
-    else
-        cpu->P = ~(1 << 6) & cpu->P;
+        cpu->P = ~(1 << bitpos) & cpu->P;
 }
 
 static void update_Z(CPU* cpu, uint8_t res){
@@ -492,7 +466,7 @@ static void CMP(CPU* cpu, uint16_t op){
     uint8_t cmp = cpu->A - memread(cpu, op);
     update_N(cpu, cmp);
     update_Z(cpu, cmp);
-    set_C(cpu, cmp <= cpu->A);
+    set_flag(C, cpu, cmp <= cpu->A);
     
 }
 
@@ -559,7 +533,7 @@ static void BIT(CPU* cpu, uint16_t op){
     uint8_t read = memread(cpu, op);
     update_Z(cpu, read & cpu->A);
     update_N(cpu, read);
-    set_V(cpu, read & (1 << 6));
+    set_flag(V, cpu, read & (1 << 6));
     return;
 }
 
@@ -673,19 +647,19 @@ static void PLP(CPU* cpu, uint16_t op){
 }
 
 static void CLC(CPU* cpu, uint16_t op){
-    set_C(cpu, false);
+    set_flag(C, cpu, false);
 }
 
 static void CLD(CPU* cpu, uint16_t op){
-    set_D(cpu, false);
+    set_flag(D, cpu, false);
 }
 
 static void CLI(CPU* cpu, uint16_t op){
-    set_I(cpu, false);
+    set_flag(I, cpu, false);
 }
 
 static void CLV(CPU* cpu, uint16_t op){
-    set_V(cpu, false);
+    set_flag(V, cpu, false);
 }
 
 static void JMP(CPU* cpu, uint16_t op){
@@ -711,11 +685,11 @@ static void RTI(CPU* cpu, uint16_t op){
 }
 
 static void SEC(CPU* cpu, uint16_t op){
-    set_C(cpu, true);
+    set_flag(C, cpu, true);
 }
 
 static void SEI(CPU* cpu, uint16_t op){
-    set_I(cpu, true);
+    set_flag(I, cpu, true);
 }
 
 static void AND(CPU* cpu, uint16_t op){
@@ -740,8 +714,8 @@ static void ADC(CPU* cpu, uint16_t op){
     /* unsigned addition overflowed */
     bool carry_out = (res < read || (res <= read && carry_in == 1));
     cpu->A = res;
-    set_V(cpu, overflow);
-    set_C(cpu, carry_out);
+    set_flag(V, cpu, overflow);
+    set_flag(C, cpu, carry_out);
     update_Z(cpu, cpu->A);
     update_N(cpu, cpu->A);
     return;
@@ -752,7 +726,7 @@ static void SBC(CPU* cpu, uint16_t op){
 }
 
 static void SED(CPU* cpu, uint16_t op){
-    set_D(cpu, true);
+    set_flag(D, cpu, true);
 }
 
 static void NOP(CPU* cpu, uint16_t op){

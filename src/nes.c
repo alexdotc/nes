@@ -7,7 +7,6 @@
 #include "mem.h"
 #include "rom.h"
 
-
 NES power_on(const char* rom_filename){
     Memory mem = alloc_main_memory();
     CPU cpu = make_cpu(&mem);
