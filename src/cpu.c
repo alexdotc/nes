@@ -20,6 +20,10 @@ static void update_N(CPU*, int8_t);
 
 static void check_pagecross(CPU*, uint16_t);
 
+static void branch(bool, CPU*, uint16_t);
+static void compare(CPU*, uint8_t, uint16_t);
+static void load(CPU*, uint8_t*, uint16_t);
+
 static void STA(CPU*, uint16_t);
 static void STX(CPU*, uint16_t);
 static void STY(CPU*, uint16_t);
@@ -415,6 +419,29 @@ static uint16_t addr_ZeroPageY(CPU* cpu){
     return 0;
 }
 
+static void branch(bool branch_taken, CPU* cpu, uint16_t op){
+    if (!branch_taken)
+        return;
+    /* +1 cycle if page crossed in branch */
+    check_pagecross(cpu, op);
+    cpu->PC = op;
+    /* +1 cycle when branch taken */
+    cpu->cycles++;
+}
+
+static void load(CPU* cpu, uint8_t* reg, uint16_t op){
+    *reg = memread(cpu, op);
+    update_Z(cpu, *reg);
+    update_N(cpu, *reg);
+}
+
+static void compare(CPU* cpu, uint8_t other, uint16_t op){
+    uint8_t cmp = other - memread(cpu, op);
+    update_N(cpu, cmp);
+    update_Z(cpu, cmp);
+    set_flag(C, cpu, cmp <= other);
+}
+
 static void STA(CPU* cpu, uint16_t op){
     /* store A at address op */
     memwrite(cpu, op, cpu->A);
@@ -431,42 +458,27 @@ static void STY(CPU* cpu, uint16_t op){
 }
 
 static void LDA(CPU* cpu, uint16_t op){
-    cpu->A = memread(cpu, op);
-    update_Z(cpu, cpu->A);
-    update_N(cpu, cpu->A);
+    load(cpu, &cpu->A, op);
 }
 
 static void LDX(CPU* cpu, uint16_t op){
-    cpu->X = memread(cpu, op);
-    update_Z(cpu, cpu->X);
-    update_N(cpu, cpu->X);
+    load(cpu, &cpu->X, op);
 }
 
 static void LDY(CPU* cpu, uint16_t op){
-    cpu->Y = memread(cpu, op);
-    update_Z(cpu, cpu->Y);
-    update_N(cpu, cpu->Y);
-}
-
-static void CPX(CPU* cpu, uint16_t op){
-    uint8_t cmp = cpu->X - memread(cpu, op);
-    update_N(cpu, cmp);
-    update_Z(cpu, cmp);
-    set_flag(C, cpu, cmp <= cpu->X);
-}
-
-static void CPY(CPU* cpu, uint16_t op){
-    uint8_t cmp = cpu->Y - memread(cpu, op);
-    update_N(cpu, cmp);
-    update_Z(cpu, cmp);
-    set_flag(C, cpu, cmp <= cpu->Y);
+    load(cpu, &cpu->Y, op);
 }
 
 static void CMP(CPU* cpu, uint16_t op){
-    uint8_t cmp = cpu->A - memread(cpu, op);
-    update_N(cpu, cmp);
-    update_Z(cpu, cmp);
-    set_flag(C, cpu, cmp <= cpu->A);
+    compare(cpu, cpu->A, op);
+}
+
+static void CPX(CPU* cpu, uint16_t op){
+    compare(cpu, cpu->X, op);
+}
+
+static void CPY(CPU* cpu, uint16_t op){
+    compare(cpu, cpu->Y, op);
 }
 
 static void TAX(CPU* cpu, uint16_t op){
@@ -493,10 +505,6 @@ static void TYA(CPU* cpu, uint16_t op){
     return;
 }
 
-static void DEC(CPU* cpu, uint16_t op){
-    return;
-}
-
 static void INC(CPU* cpu, uint16_t op){
     return;
 }
@@ -509,22 +517,20 @@ static void INY(CPU* cpu, uint16_t op){
     return;
 }
 
+static void DEC(CPU* cpu, uint16_t op){
+    return;
+}
+
 static void DEX(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void DEY(CPU* cpu, uint16_t op){
     return;
 }
 
 static void BRK(CPU* cpu, uint16_t op){
     return;
-}
-
-static void BPL(CPU* cpu, uint16_t op){
-    if (((1 << 7) & cpu->P) != 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
 }
 
 static void BIT(CPU* cpu, uint16_t op){
@@ -534,84 +540,36 @@ static void BIT(CPU* cpu, uint16_t op){
     set_flag(V, cpu, read & (1 << 6));
 }
 
+static void BPL(CPU* cpu, uint16_t op){
+    branch(((1 << 7) & cpu->P) == 0, cpu, op);
+}
+
 static void BMI(CPU* cpu, uint16_t op){
-    if (((1 << 7) & cpu->P) == 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
+    branch(((1 << 7) & cpu->P) != 0, cpu, op);
 }
 
 static void BCC(CPU* cpu, uint16_t op){
-    if ((1 & cpu->P) != 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
+    branch((1 & cpu->P) == 0, cpu, op);
 }
 
 static void BCS(CPU* cpu, uint16_t op){
-    if ((1 & cpu->P) == 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
+    branch((1 & cpu->P) != 0, cpu, op);
 }
 
 static void BVC(CPU* cpu, uint16_t op){
-    if (((1 << 6) & cpu->P) != 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
+    branch(((1 << 6) & cpu->P) == 0, cpu, op);
 }
 
 static void BVS(CPU* cpu, uint16_t op){
-    if (((1 << 6) & cpu->P) == 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
+    branch(((1 << 6) & cpu->P) != 0, cpu, op);
 }
 
 static void BEQ(CPU* cpu, uint16_t op){
-    if (((1 << 1) & cpu->P) == 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
+    branch(((1 << 1) & cpu->P) != 0, cpu, op);
 }
 
 static void BNE(CPU* cpu, uint16_t op){
-    if (((1 << 1) & cpu->P) != 0) 
-        return;
-    /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
-    cpu->PC = op;
-    /* +1 cycle if branch taken */
-    cpu->cycles++;
-}
-
-static void ORA(CPU* cpu, uint16_t op){
-    cpu->A |= memread(cpu, op);
-    update_Z(cpu, cpu->A);
-    update_N(cpu, cpu->A);
-}
-
-static void DEY(CPU* cpu, uint16_t op){
-    return;
+    branch(((1 << 1) & cpu->P) == 0, cpu, op);
 }
 
 static void PLA(CPU* cpu, uint16_t op){
@@ -694,6 +652,12 @@ static void AND(CPU* cpu, uint16_t op){
 
 static void EOR(CPU* cpu, uint16_t op){
     cpu->A ^= memread(cpu, op);
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
+}
+
+static void ORA(CPU* cpu, uint16_t op){
+    cpu->A |= memread(cpu, op);
     update_Z(cpu, cpu->A);
     update_N(cpu, cpu->A);
 }
