@@ -418,48 +418,48 @@ static uint16_t addr_ZeroPageY(CPU* cpu){
 static void STA(CPU* cpu, uint16_t op){
     /* store A at address op */
     memwrite(cpu, op, cpu->A);
-    return;
 }
 
 static void STX(CPU* cpu, uint16_t op){
     /* store X at address op */
     memwrite(cpu, op, cpu->X);
-    return;
 }
 
 static void STY(CPU* cpu, uint16_t op){
     /* store Y at address op */
     memwrite(cpu, op, cpu->Y);
-    return;
 }
 
 static void LDA(CPU* cpu, uint16_t op){
     cpu->A = memread(cpu, op);
     update_Z(cpu, cpu->A);
     update_N(cpu, cpu->A);
-    return;
 }
 
 static void LDX(CPU* cpu, uint16_t op){
     cpu->X = memread(cpu, op);
     update_Z(cpu, cpu->X);
     update_N(cpu, cpu->X);
-    return;
 }
 
 static void LDY(CPU* cpu, uint16_t op){
     cpu->Y = memread(cpu, op);
     update_Z(cpu, cpu->Y);
     update_N(cpu, cpu->Y);
-    return;
 }
 
 static void CPX(CPU* cpu, uint16_t op){
-    return;
+    uint8_t cmp = cpu->X - memread(cpu, op);
+    update_N(cpu, cmp);
+    update_Z(cpu, cmp);
+    set_flag(C, cpu, cmp <= cpu->X);
 }
 
 static void CPY(CPU* cpu, uint16_t op){
-    return;
+    uint8_t cmp = cpu->Y - memread(cpu, op);
+    update_N(cpu, cmp);
+    update_Z(cpu, cmp);
+    set_flag(C, cpu, cmp <= cpu->Y);
 }
 
 static void CMP(CPU* cpu, uint16_t op){
@@ -467,7 +467,6 @@ static void CMP(CPU* cpu, uint16_t op){
     update_N(cpu, cmp);
     update_Z(cpu, cmp);
     set_flag(C, cpu, cmp <= cpu->A);
-    
 }
 
 static void TAX(CPU* cpu, uint16_t op){
@@ -526,7 +525,6 @@ static void BPL(CPU* cpu, uint16_t op){
     cpu->PC = op;
     /* +1 cycle if branch taken */
     cpu->cycles++;
-    return;
 }
 
 static void BIT(CPU* cpu, uint16_t op){
@@ -534,7 +532,6 @@ static void BIT(CPU* cpu, uint16_t op){
     update_Z(cpu, read & cpu->A);
     update_N(cpu, read);
     set_flag(V, cpu, read & (1 << 6));
-    return;
 }
 
 static void BMI(CPU* cpu, uint16_t op){
@@ -545,7 +542,6 @@ static void BMI(CPU* cpu, uint16_t op){
     cpu->PC = op;
     /* +1 cycle if branch taken */
     cpu->cycles++;
-    return;
 }
 
 static void BCC(CPU* cpu, uint16_t op){
@@ -576,7 +572,6 @@ static void BVC(CPU* cpu, uint16_t op){
     cpu->PC = op;
     /* +1 cycle if branch taken */
     cpu->cycles++;
-    return;
 }
 
 static void BVS(CPU* cpu, uint16_t op){
@@ -587,7 +582,6 @@ static void BVS(CPU* cpu, uint16_t op){
     cpu->PC = op;
     /* +1 cycle if branch taken */
     cpu->cycles++;
-    return;
 }
 
 static void BEQ(CPU* cpu, uint16_t op){
@@ -718,7 +712,6 @@ static void ADC(CPU* cpu, uint16_t op){
     set_flag(C, cpu, carry_out);
     update_Z(cpu, cpu->A);
     update_N(cpu, cpu->A);
-    return;
 }
 
 static void SBC(CPU* cpu, uint16_t op){
