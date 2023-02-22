@@ -23,6 +23,7 @@ static void check_pagecross(CPU*, uint16_t);
 static void branch(bool, CPU*, uint16_t);
 static void compare(CPU*, uint8_t, uint16_t);
 static void load(CPU*, uint8_t*, uint16_t);
+static void xbc(CPU*, uint16_t, bool);
 
 static void STA(CPU*, uint16_t);
 static void STX(CPU*, uint16_t);
@@ -442,6 +443,38 @@ static void compare(CPU* cpu, uint8_t other, uint16_t op){
     set_flag(C, cpu, cmp <= other);
 }
 
+static void xbc(CPU* cpu, uint16_t op, bool invert){
+    /* core logic for ADC and SBC. if invert is true, do SBC. else do ADC.
+       these instructions perform addition or subtraction of the form
+       Accumulator +- Operand +- Carry bit (bit 0 of the status register), where
+       the carry bit is inverted for a subtract (the 'borrow flag').
+       
+       The overflow flag is set when we consider this as a signed operation and
+       interpret our operands and result as two's complement values.
+       
+       The carry flag is still set as per usual, when we have "unsigned"
+       (hardware) overflow (a carry in the highest order bit). This dual
+       interpreation and dual meaning of the term "overflow" makes this a bit
+       tricky.
+
+       In the case of subtraction, we can simply take the ones' complement
+       (invert the bits) of the second op and do addition for the same effect */
+    uint8_t read = memread(cpu, op);
+    uint8_t carry_in = cpu->P & 1;
+    if (invert) read = ~read;
+    uint8_t res = carry_in + read + cpu->A;
+    /* read and accum both have different signs than res.
+       signed addition overflowed */
+    bool overflow = ((read >> 7) ^ (res >> 7)) & ((cpu->A >> 7) ^ (res >> 7));
+    /* unsigned addition overflowed */
+    bool carry_out = (res < read || (res == read && carry_in == 1));
+    cpu->A = res;
+    set_flag(V, cpu, overflow);
+    set_flag(C, cpu, carry_out);
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
+}
+
 static void STA(CPU* cpu, uint16_t op){
     /* store A at address op */
     memwrite(cpu, op, cpu->A);
@@ -506,27 +539,43 @@ static void TYA(CPU* cpu, uint16_t op){
 }
 
 static void INC(CPU* cpu, uint16_t op){
-    return;
+    uint8_t read = memread(cpu, op);
+    read++;
+    memwrite(cpu, op, read);
+    update_Z(cpu, read);
+    update_N(cpu, read);
 }
 
 static void INX(CPU* cpu, uint16_t op){
-    return;
+    cpu->X++;
+    update_Z(cpu, cpu->X);
+    update_N(cpu, cpu->X);
 }
 
 static void INY(CPU* cpu, uint16_t op){
-    return;
+    cpu->Y++;
+    update_Z(cpu, cpu->Y);
+    update_N(cpu, cpu->Y);
 }
 
 static void DEC(CPU* cpu, uint16_t op){
-    return;
+    uint8_t read = memread(cpu, op);
+    read--;
+    memwrite(cpu, op, read);
+    update_Z(cpu, read);
+    update_N(cpu, read);
 }
 
 static void DEX(CPU* cpu, uint16_t op){
-    return;
+    cpu->X--;
+    update_Z(cpu, cpu->X);
+    update_N(cpu, cpu->X);
 }
 
 static void DEY(CPU* cpu, uint16_t op){
-    return;
+    cpu->Y--;
+    update_Z(cpu, cpu->Y);
+    update_N(cpu, cpu->Y);
 }
 
 static void BRK(CPU* cpu, uint16_t op){
@@ -663,23 +712,11 @@ static void ORA(CPU* cpu, uint16_t op){
 }
 
 static void ADC(CPU* cpu, uint16_t op){
-    uint8_t read = memread(cpu, op);
-    uint8_t carry_in = cpu->P & 1;
-    uint8_t res = carry_in + read + cpu->A;
-    /* read and accum both have different signs than res.
-       signed addition overflowed */
-    bool overflow = ((read >> 7) ^ (res >> 7)) & ((cpu->A >> 7) ^ (res >> 7));
-    /* unsigned addition overflowed */
-    bool carry_out = (res < read || (res <= read && carry_in == 1));
-    cpu->A = res;
-    set_flag(V, cpu, overflow);
-    set_flag(C, cpu, carry_out);
-    update_Z(cpu, cpu->A);
-    update_N(cpu, cpu->A);
+    xbc(cpu, op, false);
 }
 
 static void SBC(CPU* cpu, uint16_t op){
-    return;
+    xbc(cpu, op, true);
 }
 
 static void SED(CPU* cpu, uint16_t op){
