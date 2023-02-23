@@ -742,42 +742,102 @@ static void SED(CPU* cpu, uint16_t op){
     set_flag(D, cpu, true);
 }
 
-static void NOP(CPU* cpu, uint16_t op){
-    return;
-}
-
 static void ASL(CPU* cpu, uint16_t op){
-    return;
+    uint8_t read = memread(cpu, op);
+    set_flag(C, cpu, read & 0x80);
+    read <<= 1; /* not flip bind lol */
+    memwrite(cpu, op, read);
+    update_Z(cpu, read);
+    update_N(cpu, read);
 }
 
 static void LSR(CPU* cpu, uint16_t op){
-    return;
+    uint8_t read = memread(cpu, op);
+    set_flag(C, cpu, read & 1);
+    read >>= 1; /* not bind lol */
+    memwrite(cpu, op, read);
+    update_Z(cpu, read);
+    update_N(cpu, read);
 }
 
 static void ROL(CPU* cpu, uint16_t op){
-    return;
+    /* left "rotate", except (post-rotation) bit 0 becomes the old
+     * carry and the new carry becomes the bit that was rotated out
+     * (pre-rotation bit 7). in other words, the operand is not actually
+     * rotated about itself. very misleading use of the term "rotate"... */
+    uint8_t read = memread(cpu, op);
+    bool save_carry = cpu->P & 0x80;
+    set_flag(C, cpu, read & 0x80);
+    read <<= 1;
+    if (save_carry)
+        read |= 1;
+    else
+        read &= ~1;
+    memwrite(cpu, op, read);
+    update_Z(cpu, read);
+    update_N(cpu, read);
 }
 
 static void ROR(CPU* cpu, uint16_t op){
-    return;
+    /* right "rotate", except (post-rotation) bit 7 becomes the old
+     * carry and the new carry becomes the bit that was rotated out
+     * (pre-rotation bit 0). in other words, the operand is not actually
+     * rotated about itself. very misleading use of the term "rotate"... */
+    uint8_t read = memread(cpu, op);
+    bool save_carry = cpu->P & 1;
+    set_flag(C, cpu, read & 1);
+    read >>= 1;
+    if (save_carry)
+        read |= 0x80;
+    else
+        read &= ~0x80;
+    memwrite(cpu, op, read);
+    update_Z(cpu, read);
+    update_N(cpu, read);
 }
 
 static void ASL_A(CPU* cpu, uint16_t op){
-    return;
+    set_flag(C, cpu, cpu->A & 0x80);
+    cpu->A <<= 1; /* not flip bind lol */
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void LSR_A(CPU* cpu, uint16_t op){
-    return;
+    set_flag(C, cpu, cpu->A & 1);
+    cpu->A >>= 1;
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void ROL_A(CPU* cpu, uint16_t op){
-    return;
+    bool save_carry = cpu->P & 0x80;
+    set_flag(C, cpu, cpu->A & 0x80);
+    cpu->A <<= 1;
+    if (save_carry)
+        cpu->A |= 1;
+    else
+        cpu->A &= ~1;
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void ROR_A(CPU* cpu, uint16_t op){
-    return;
+    bool save_carry = cpu->P & 1;
+    set_flag(C, cpu, cpu->A & 1);
+    cpu->A >>= 1;
+    if (save_carry)
+        cpu->A |= 0x80;
+    else
+        cpu->A &= ~0x80;
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void BRK(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void NOP(CPU* cpu, uint16_t op){
     return;
 }
