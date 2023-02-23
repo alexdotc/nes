@@ -673,6 +673,11 @@ static void JMP(CPU* cpu, uint16_t op){
 static void JSR(CPU* cpu, uint16_t op){
     uint8_t low = 0x00FF & cpu->PC;
     uint8_t high = cpu->PC >> 8;
+    /* adjust off-by-one which usually won't matter
+       except in very specific sequences where a stack pull
+       happens before an RTS */
+    if (low == 0) high--; /* overflow */
+    low--;
     stack_push(cpu, high);
     stack_push(cpu, low);
     cpu->PC = op;
@@ -682,13 +687,18 @@ static void RTS(CPU* cpu, uint16_t op){
     uint8_t low = stack_pull(cpu);
     uint8_t high = stack_pull(cpu);
     cpu->PC = ((uint16_t) high << 8) | low;
+    /* adjust off-by-one which usually won't matter
+       except in very specific sequences */
+    cpu->PC++;
 }
 
 static void RTI(CPU* cpu, uint16_t op){
     /* equivalent to PLP */
     cpu->P = stack_pull(cpu) & ~(1 << 4);
     cpu->P |= (1 << 5);
-    /**/
+    /* subtle difference from RTS in that the PC
+       will be 1 less: the actual address pulled
+       from stack */
     uint8_t low = stack_pull(cpu);
     uint8_t high = stack_pull(cpu);
     cpu->PC = ((uint16_t) high << 8) | low;
