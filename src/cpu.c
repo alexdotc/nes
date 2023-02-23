@@ -476,17 +476,14 @@ static void xbc(CPU* cpu, uint16_t op, bool invert){
 }
 
 static void STA(CPU* cpu, uint16_t op){
-    /* store A at address op */
     memwrite(cpu, op, cpu->A);
 }
 
 static void STX(CPU* cpu, uint16_t op){
-    /* store X at address op */
     memwrite(cpu, op, cpu->X);
 }
 
 static void STY(CPU* cpu, uint16_t op){
-    /* store Y at address op */
     memwrite(cpu, op, cpu->Y);
 }
 
@@ -514,28 +511,38 @@ static void CPY(CPU* cpu, uint16_t op){
     compare(cpu, cpu->Y, op);
 }
 
-static void TAX(CPU* cpu, uint16_t op){
-    return;
-}
-
-static void TAY(CPU* cpu, uint16_t op){
-    return;
-}
-
 static void TSX(CPU* cpu, uint16_t op){
-    return;
-}
-
-static void TXA(CPU* cpu, uint16_t op){
-    return;
+    cpu->X = cpu->SP;
+    update_Z(cpu, cpu->X);
+    update_N(cpu, cpu->X);
 }
 
 static void TXS(CPU* cpu, uint16_t op){
-    return;
+    cpu->SP = cpu->X;
+}
+
+static void TAX(CPU* cpu, uint16_t op){
+    cpu->X = cpu->A;
+    update_Z(cpu, cpu->X);
+    update_N(cpu, cpu->X);
+}
+
+static void TAY(CPU* cpu, uint16_t op){
+    cpu->Y = cpu->A;
+    update_Z(cpu, cpu->Y);
+    update_N(cpu, cpu->Y);
+}
+
+static void TXA(CPU* cpu, uint16_t op){
+    cpu->A = cpu->X;
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void TYA(CPU* cpu, uint16_t op){
-    return;
+    cpu->A = cpu->Y;
+    update_Z(cpu, cpu->A);
+    update_N(cpu, cpu->A);
 }
 
 static void INC(CPU* cpu, uint16_t op){
@@ -576,10 +583,6 @@ static void DEY(CPU* cpu, uint16_t op){
     cpu->Y--;
     update_Z(cpu, cpu->Y);
     update_N(cpu, cpu->Y);
-}
-
-static void BRK(CPU* cpu, uint16_t op){
-    return;
 }
 
 static void BIT(CPU* cpu, uint16_t op){
@@ -682,7 +685,13 @@ static void RTS(CPU* cpu, uint16_t op){
 }
 
 static void RTI(CPU* cpu, uint16_t op){
-    return;
+    /* equivalent to PLP */
+    cpu->P = stack_pull(cpu) & ~(1 << 4);
+    cpu->P |= (1 << 5);
+    /**/
+    uint8_t low = stack_pull(cpu);
+    uint8_t high = stack_pull(cpu);
+    cpu->PC = ((uint16_t) high << 8) | low;
 }
 
 static void SEC(CPU* cpu, uint16_t op){
@@ -756,5 +765,9 @@ static void ROL_A(CPU* cpu, uint16_t op){
 }
 
 static void ROR_A(CPU* cpu, uint16_t op){
+    return;
+}
+
+static void BRK(CPU* cpu, uint16_t op){
     return;
 }
