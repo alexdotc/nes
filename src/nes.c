@@ -22,7 +22,7 @@ NES power_on(const char* rom_filename){
     }
     #endif
     reset(&cpu);
-    for (int i = 0 ; i < 3042; ++i)
+    for (int i = 0 ; i < 3041; ++i)
         FDE(&cpu);
     return nes;
 }

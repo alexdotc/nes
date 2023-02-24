@@ -279,6 +279,8 @@ void FDE(CPU* cpu){
 
     #ifdef DEBUG
     /* TODO write to a log file or stdout */
+    static uint64_t opno = 0;
+    ++opno;
     const char* mnemonic = mnemonic_str[opcode];
     const char* addrstring = addr_string[opcode];
     uint8_t n_oper;
@@ -290,6 +292,8 @@ void FDE(CPU* cpu){
     else if (strncmp(addrstring, "Absolute", 2) == 0) n_oper = 2;
     else if (strcmp(addrstring, "Indirect") == 0) n_oper = 2;
     else n_oper = 1;
+
+    printf("%ld\t", opno);
 
     switch(n_oper){
         case 0:
@@ -773,7 +777,7 @@ static void ROL(CPU* cpu, uint16_t op){
      * (pre-rotation bit 7). in other words, the operand is not actually
      * rotated about itself. very misleading use of the term "rotate"... */
     uint8_t read = memread(cpu, op);
-    bool save_carry = cpu->P & 0x80;
+    bool save_carry = cpu->P & 1;
     set_flag(C, cpu, read & 0x80);
     read <<= 1;
     if (save_carry)
@@ -818,7 +822,7 @@ static void LSR_A(CPU* cpu, uint16_t op){
 }
 
 static void ROL_A(CPU* cpu, uint16_t op){
-    bool save_carry = cpu->P & 0x80;
+    bool save_carry = cpu->P & 1;
     set_flag(C, cpu, cpu->A & 0x80);
     cpu->A <<= 1;
     if (save_carry)
