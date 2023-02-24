@@ -148,7 +148,7 @@ static const uint8_t cycles[256] =
 /* array of function pointers to addressing modes indexed by opcode number */
 static const uint16_t (*addrmodes[256])(CPU*) =
 {
-    addr_Implied, addr_Indirect, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, NULL, addr_Absolute, addr_Absolute, NULL, /* 00-OF */
+    addr_Implied, addr_IndirectX, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, NULL, addr_Absolute, addr_Absolute, NULL, /* 00-OF */
     addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 10-1F */
     addr_Absolute, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* 20-2F */
     addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 30-3F */
@@ -189,7 +189,7 @@ static const char* mnemonic_str[256] =
 
 static const char* addr_string[256] = 
 {
-    "Implied", "Indirect", NULL, NULL, NULL, "ZeroPage", "ZeroPage", NULL, "Implied", "Immediate", "Accumulator", NULL, NULL, "Absolute", "Absolute", NULL, /* 00-OF */
+    "Implied", "IndirectX", NULL, NULL, NULL, "ZeroPage", "ZeroPage", NULL, "Implied", "Immediate", "Accumulator", NULL, NULL, "Absolute", "Absolute", NULL, /* 00-OF */
     "Relative", "IndirectY", NULL, NULL, NULL, "ZeroPageX", "ZeroPageX", NULL, "Implied", "AbsoluteY", NULL, NULL, NULL, "AbsoluteX", "AbsoluteX", NULL, /* 10-1F */
     "Absolute", "IndirectX", NULL, NULL, "ZeroPage", "ZeroPage", "ZeroPage", NULL, "Implied", "Immediate", "Accumulator", NULL, "Absolute", "Absolute", "Absolute", NULL, /* 20-2F */
     "Relative", "IndirectY", NULL, NULL, NULL, "ZeroPageX", "ZeroPageX", NULL, "Implied", "AbsoluteY", NULL, NULL, NULL, "AbsoluteX", "AbsoluteX", NULL, /* 30-3F */
@@ -388,8 +388,15 @@ static uint16_t addr_Indirect(CPU* cpu){
 }
 
 static uint16_t addr_IndirectX(CPU* cpu){
-    err_exit("CPU: Unimplemented addressing mode IndirectX at location %04X", cpu->PC-1);
-    return 0;
+    /* overflow wraps zero page as intended */
+    uint8_t indirect = memreadPC(cpu) + cpu->X;
+    uint16_t low = memread(cpu, indirect);
+    /* we need to cast this addiiton expression before we pass since memread
+       will widen to uint16_t, but we want this to overflow and wrap the 
+       zero page */
+    uint16_t high = memread(cpu, (uint8_t)(indirect+1));
+    uint16_t addr = (high << 8) | low;
+    return addr;
 }
 
 static uint16_t addr_IndirectY(CPU* cpu){
@@ -454,7 +461,7 @@ static void xbc(CPU* cpu, uint16_t op, bool invert){
        
        The carry flag is still set as per usual, when we have "unsigned"
        (hardware) overflow (a carry in the highest order bit). This dual
-       interpreation and dual meaning of the term "overflow" makes this a bit
+       interpretation and dual meaning of the term "overflow" makes this a bit
        tricky.
 
        In the case of subtraction, we can simply take the ones' complement
