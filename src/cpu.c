@@ -90,12 +90,15 @@ static void ROR_A(CPU*, uint16_t);
 static uint16_t addr_Accumulator(CPU*);
 static uint16_t addr_Absolute(CPU*);
 static uint16_t addr_AbsoluteX(CPU*);
+static uint16_t addr_AbsoluteX_NoPageCheck(CPU*);
 static uint16_t addr_AbsoluteY(CPU*);
+static uint16_t addr_AbsoluteY_NoPageCheck(CPU*);
 static uint16_t addr_Immediate(CPU*);
 static uint16_t addr_Implied(CPU*);
 static uint16_t addr_Indirect(CPU*);
 static uint16_t addr_IndirectX(CPU*);
 static uint16_t addr_IndirectY(CPU*);
+static uint16_t addr_IndirectY_NoPageCheck(CPU*);
 static uint16_t addr_Relative(CPU*);
 static uint16_t addr_ZeroPage(CPU*);
 static uint16_t addr_ZeroPageX(CPU*);
@@ -157,7 +160,7 @@ static const uint16_t (*addrmodes[256])(CPU*) =
     addr_Implied, addr_IndirectX, NULL, NULL, NULL, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Accumulator, NULL, addr_Indirect, addr_Absolute, addr_Absolute, NULL, /* 60-6F */
     addr_Relative, addr_IndirectY, NULL, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, NULL, addr_Implied, addr_AbsoluteY, NULL, NULL, NULL, addr_AbsoluteX, addr_AbsoluteX, NULL, /* 70-7F */
     NULL, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, NULL, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* 80-8F */
-    addr_Relative, addr_IndirectY, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, addr_ZeroPageY, NULL, addr_Implied, addr_AbsoluteY, addr_Implied, NULL, NULL, addr_AbsoluteX, NULL, NULL, /* 90-9F */
+    addr_Relative, addr_IndirectY_NoPageCheck, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, addr_ZeroPageY, NULL, addr_Implied, addr_AbsoluteY_NoPageCheck, addr_Implied, NULL, NULL, addr_AbsoluteX_NoPageCheck, NULL, NULL, /* 90-9F */
     addr_Immediate, addr_IndirectX, addr_Immediate, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* A0-AF */
     addr_Relative, addr_IndirectY, NULL, NULL, addr_ZeroPageX, addr_ZeroPageX, addr_ZeroPageY, NULL, addr_Implied, addr_AbsoluteY, addr_Implied, NULL, addr_AbsoluteX, addr_AbsoluteX, addr_AbsoluteY, NULL, /* B0-BF */
     addr_Immediate, addr_IndirectX, NULL, NULL, addr_ZeroPage, addr_ZeroPage, addr_ZeroPage, NULL, addr_Implied, addr_Immediate, addr_Implied, NULL, addr_Absolute, addr_Absolute, addr_Absolute, NULL, /* C0-CF */
@@ -367,6 +370,15 @@ static uint16_t addr_AbsoluteX(CPU* cpu){
     return addr;
 }
 
+static uint16_t addr_AbsoluteX_NoPageCheck(CPU* cpu){
+    /* For STA (0x9D) only. Store instructions always have the oops cycle
+       so we skip the check to see if we crossed a page boundary */
+    uint16_t low = memreadPC(cpu);
+    uint16_t high = memreadPC(cpu);
+    uint16_t addr = (high << 8) | low;
+    return addr + cpu->X;
+}
+
 static uint16_t addr_AbsoluteY(CPU* cpu){
     uint16_t low = memreadPC(cpu);
     uint16_t high = memreadPC(cpu);
@@ -374,6 +386,15 @@ static uint16_t addr_AbsoluteY(CPU* cpu){
     uint16_t addr = pre + cpu->Y;
     check_pagecross(cpu, pre, addr);
     return addr;
+}
+
+static uint16_t addr_AbsoluteY_NoPageCheck(CPU* cpu){
+    /* For STA (0x99) only. Store instructions always have the oops cycle
+       so we skip the check to see if we crossed a page boundary */
+    uint16_t low = memreadPC(cpu);
+    uint16_t high = memreadPC(cpu);
+    uint16_t addr = (high << 8) | low;
+    return addr + cpu->Y;
 }
 
 static uint16_t addr_Immediate(CPU* cpu){
@@ -407,7 +428,7 @@ static uint16_t addr_IndirectX(CPU* cpu){
     /* we need to cast this addiiton expression before we pass since memread
        will widen to uint16_t, but we want this to overflow and wrap the 
        zero page */
-    uint16_t high = memread(cpu, (uint8_t)(indirect+1));
+    uint16_t high = memread(cpu, (uint8_t)(indirect + 1));
     uint16_t addr = (high << 8) | low;
     return addr;
 }
@@ -418,11 +439,24 @@ static uint16_t addr_IndirectY(CPU* cpu){
     /* we need to cast this addiiton expression before we pass since memread
        will widen to uint16_t, but we want this to overflow and wrap the 
        zero page */
-    uint16_t high = memread(cpu, (uint8_t)(indirect+1));
+    uint16_t high = memread(cpu, (uint8_t)(indirect + 1));
     uint16_t pre = (high << 8) | low;
     uint16_t addr = (pre + cpu->Y);
     check_pagecross(cpu, pre, addr);
     return addr;
+}
+
+static uint16_t addr_IndirectY_NoPageCheck(CPU* cpu){
+    /* For STA (0x91) only. Store instructions always have the oops cycle
+       so we skip the check to see if we crossed a page boundary */
+    uint8_t indirect = memreadPC(cpu);
+    uint16_t low = memread(cpu, indirect);
+    /* we need to cast this addiiton expression before we pass since memread
+       will widen to uint16_t, but we want this to overflow and wrap the 
+       zero page */
+    uint16_t high = memread(cpu, (uint8_t)(indirect + 1));
+    uint16_t addr = (high << 8) | low;
+    return addr + cpu->Y;
 }
 
 static uint16_t addr_Relative(CPU* cpu){
