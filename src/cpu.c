@@ -309,7 +309,7 @@ void FDE(CPU* cpu){
     #endif
 
     uint16_t op;
-    op = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly and in debug */
+    op = addrmodes[opcode](cpu);
     opcodes[opcode](cpu, op);
 
     cpu->cycles = cpu->cycles + cycles[opcode];
@@ -359,13 +359,21 @@ static uint16_t addr_Absolute(CPU* cpu){
 }
 
 static uint16_t addr_AbsoluteX(CPU* cpu){
-    err_exit("CPU: Unimplemented addressing mode AbsoluteX at location %04X", cpu->PC-1);
-    return 0;
+    uint16_t low = memreadPC(cpu);
+    uint16_t high = memreadPC(cpu);
+    uint16_t pre = (high << 8) | low;
+    uint16_t addr = pre + cpu->X;
+    check_pagecross(cpu, pre, addr);
+    return addr;
 }
 
 static uint16_t addr_AbsoluteY(CPU* cpu){
-    err_exit("CPU: Unimplemented addressing mode AbsoluteY at location %04X", cpu->PC-1);
-    return 0;
+    uint16_t low = memreadPC(cpu);
+    uint16_t high = memreadPC(cpu);
+    uint16_t pre = (high << 8) | low;
+    uint16_t addr = pre + cpu->Y;
+    check_pagecross(cpu, pre, addr);
+    return addr;
 }
 
 static uint16_t addr_Immediate(CPU* cpu){
