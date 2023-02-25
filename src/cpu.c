@@ -18,7 +18,7 @@ static void set_flag(flags, CPU*, bool);
 static void update_Z(CPU*, uint8_t);
 static void update_N(CPU*, int8_t);
 
-static void check_pagecross(CPU*, uint16_t);
+static void check_pagecross(CPU*, uint16_t, uint16_t);
 
 static void branch(bool, CPU*, uint16_t);
 static void compare(CPU*, uint8_t, uint16_t);
@@ -274,8 +274,6 @@ void FDE(CPU* cpu){
     uint8_t opcode = memreadPC(cpu); 
     if (addrmodes[opcode] == NULL)
         err_exit("CPU: Illegal opcode %02x at location %04X", opcode, cpu->PC-1);
-    uint16_t op;
-    op = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly and in debug */
 
     #ifdef DEBUG
     /* TODO write to a log file or stdout */
@@ -310,15 +308,17 @@ void FDE(CPU* cpu){
     }
     #endif
 
+    uint16_t op;
+    op = addrmodes[opcode](cpu); /* TODO figure out how to handle 0 or 1 byte operands cleanly and in debug */
     opcodes[opcode](cpu, op);
 
     cpu->cycles = cpu->cycles + cycles[opcode];
 
 }
 
-static void check_pagecross(CPU* cpu, uint16_t target){
+static void check_pagecross(CPU* cpu, uint16_t initial, uint16_t adjusted){
     /* if high byte different */
-    if ((target & 0xFF00) != (cpu->PC & 0xFF00))
+    if ((adjusted & 0xFF00) != (initial & 0xFF00))
         cpu->cycles++;
 }
 
@@ -404,8 +404,16 @@ static uint16_t addr_IndirectX(CPU* cpu){
 }
 
 static uint16_t addr_IndirectY(CPU* cpu){
-    err_exit("CPU: Unimplemented addressing mode IndirectY at location %04X", cpu->PC-1);
-    return 0;
+    uint8_t indirect = memreadPC(cpu);
+    uint16_t low = memread(cpu, indirect);
+    /* we need to cast this addiiton expression before we pass since memread
+       will widen to uint16_t, but we want this to overflow and wrap the 
+       zero page */
+    uint16_t high = memread(cpu, (uint8_t)(indirect+1));
+    uint16_t pre = (high << 8) | low;
+    uint16_t addr = (pre + cpu->Y);
+    check_pagecross(cpu, pre, addr);
+    return addr;
 }
 
 static uint16_t addr_Relative(CPU* cpu){
@@ -435,7 +443,7 @@ static void branch(bool branch_taken, CPU* cpu, uint16_t op){
     if (!branch_taken)
         return;
     /* +1 cycle if page crossed in branch */
-    check_pagecross(cpu, op);
+    check_pagecross(cpu, cpu->PC, op);
     cpu->PC = op;
     /* +1 cycle when branch taken */
     cpu->cycles++;
