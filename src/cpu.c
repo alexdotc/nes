@@ -434,18 +434,19 @@ static uint16_t addr_Relative(CPU* cpu){
 
 static uint16_t addr_ZeroPage(CPU* cpu){
     /* just read the low byte and use $00 as the high byte */
-    uint16_t addr = memreadPC(cpu);
-    return addr;
+    return memreadPC(cpu);
 }
 
 static uint16_t addr_ZeroPageX(CPU* cpu){
-    err_exit("CPU: Unimplemented addressing mode ZeroPageX at location %04X", cpu->PC-1);
-    return 0;
+    /* X-indexed addition may (intentionally) overflow and wrap on zero page */
+    uint8_t addr = memreadPC(cpu) + cpu->X;
+    return addr;
 }
 
 static uint16_t addr_ZeroPageY(CPU* cpu){
-    err_exit("CPU: Unimplemented addressing mode ZeroPageY at location %04X", cpu->PC-1);
-    return 0;
+    /* Y-indexed addition may (intentionally) overflow and wrap on zero page */
+    uint8_t addr = memreadPC(cpu) + cpu->Y;
+    return addr;
 }
 
 static void branch(bool branch_taken, CPU* cpu, uint16_t op){
