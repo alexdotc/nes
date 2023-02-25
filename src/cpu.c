@@ -382,12 +382,13 @@ static uint16_t addr_Implied(CPU* cpu){
 }
 
 static uint16_t addr_Indirect(CPU* cpu){
-    uint16_t low = memreadPC(cpu);
-    uint16_t high = memreadPC(cpu);
+    uint16_t indlow = memreadPC(cpu);
+    uint16_t indhigh = memreadPC(cpu);
+    uint16_t indirect = (indhigh << 8) | indlow;
+    uint16_t low = memread(cpu, indirect);
+    /* reading effective address wraps page when low byte overflows */
+    uint16_t high = memread(cpu, (indhigh << 8) | ((uint8_t)(indirect + 1)));
     uint16_t addr = (high << 8) | low;
-    low = memread(cpu, addr);
-    high = memread(cpu, addr+1);
-    addr = (high << 8) | low;
     return addr;
 }
 
