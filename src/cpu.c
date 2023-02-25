@@ -256,9 +256,7 @@ void reset(CPU* cpu){
     uint16_t high = memreadPC(cpu);
 
     cpu->PC = (high << 8) | low; /* jump */
-    #ifdef DEBUG
     cpu->PC = 0xC000; /* nestest first instruction */
-    #endif
 }
 
 void FDE(CPU* cpu){
@@ -362,9 +360,7 @@ static uint16_t addr_Absolute(CPU* cpu){
 }
 
 static uint16_t addr_AbsoluteX(CPU* cpu){
-    uint16_t low = memreadPC(cpu);
-    uint16_t high = memreadPC(cpu);
-    uint16_t pre = (high << 8) | low;
+    uint16_t pre = addr_Absolute(cpu);
     uint16_t addr = pre + cpu->X;
     check_pagecross(cpu, pre, addr);
     return addr;
@@ -373,16 +369,12 @@ static uint16_t addr_AbsoluteX(CPU* cpu){
 static uint16_t addr_AbsoluteX_NoPageCheck(CPU* cpu){
     /* For STA (0x9D) only. Store instructions always have the oops cycle
        so we skip the check to see if we crossed a page boundary */
-    uint16_t low = memreadPC(cpu);
-    uint16_t high = memreadPC(cpu);
-    uint16_t addr = (high << 8) | low;
+    uint16_t addr = addr_Absolute(cpu);
     return addr + cpu->X;
 }
 
 static uint16_t addr_AbsoluteY(CPU* cpu){
-    uint16_t low = memreadPC(cpu);
-    uint16_t high = memreadPC(cpu);
-    uint16_t pre = (high << 8) | low;
+    uint16_t pre = addr_Absolute(cpu);
     uint16_t addr = pre + cpu->Y;
     check_pagecross(cpu, pre, addr);
     return addr;
@@ -391,9 +383,7 @@ static uint16_t addr_AbsoluteY(CPU* cpu){
 static uint16_t addr_AbsoluteY_NoPageCheck(CPU* cpu){
     /* For STA (0x99) only. Store instructions always have the oops cycle
        so we skip the check to see if we crossed a page boundary */
-    uint16_t low = memreadPC(cpu);
-    uint16_t high = memreadPC(cpu);
-    uint16_t addr = (high << 8) | low;
+    uint16_t addr = addr_Absolute(cpu);
     return addr + cpu->Y;
 }
 
