@@ -29,7 +29,5 @@ NES power_on(const char* rom_filename){
 
 void power_off(NES* nes){
     /* TODO */
-
-    free_main_memory(nes->mem);
-
+    free_memory(nes->mem);
 }

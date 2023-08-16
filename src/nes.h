@@ -3,10 +3,13 @@
 
 #include "cpu.h"
 #include "mem.h"
+#include "ppu.h"
 
 typedef struct NES{
     CPU cpu;
-    Memory mem;
+    Memory mem; /* CPU memory map */
+    PPU ppu;
+    PPUMemory ppumem; /* PPU memory map */
     /* ... */
 } NES;
 

@@ -10,19 +10,24 @@
 
 const InesHeader read_ines_header(const uint8_t*);
 void validate_ines_header(const InesHeader*, const char*);
-void map_rom(NES*, const InesHeader*, uint8_t*);
+const InesHeader load_rom(NES*, const char*);
+void map_rom(NES*, const InesHeader*, uint8_t*, uint8_t*);
+void map_NROM_128(NES*, const InesHeader*, uint8_t*, uint8_t*);
+void map_NROM_256(NES*, const InesHeader*, uint8_t*, uint8_t*);
 
 const InesHeader read_ines_header(const uint8_t* header){
     /* Parse an ines header and to a struct 
        Does NOT validate anything */
     bool sig = (*((uint32_t*) header) == INES_SIGNATURE);
-    /* TODO offset 4 is the LSB of a 12-bit value PRGROM size but
+    /* TODO offset 4 is the LSB of a 12-bit value PRGROM size (NES 2.0) but
      * this is good enough for testing and any retail NES game. */
     uint8_t prgrom = header[4];
+    /* TODO offset 5 is the LSB of a 12-bit value CHRROM size (NES 2.0) but
+     * this is good enough for testing and any retail NES game. */
+    uint8_t chrrom = header[5];
     uint8_t mapper = (header[7] & 0xF0) & (header[6] >> 4);
-    const InesHeader h = { sig, prgrom, mapper };
+    const InesHeader h = { sig, prgrom, chrrom, mapper };
     /* TODO update this as we need to read and support more stuff */
-
     return h;
 }
 
@@ -51,35 +56,42 @@ const InesHeader load_rom(NES* nes, const char* filename){
     validate_ines_header(&header, filename);
 
     /* read prgrom */
-    uint8_t data[header.prgrom*PRGROM_PAGESIZE]; /* TODO consider heap alloc if these get several times bigger */
-    read = fread(data, 1, header.prgrom*PRGROM_PAGESIZE, rom); /* TODO wrap freads for single size read */
+    uint8_t prg[header.prgrom*PRGROM_PAGESIZE]; /* TODO consider heap alloc if these get several times bigger */
+    read = fread(prg, 1, header.prgrom*PRGROM_PAGESIZE, rom); /* TODO wrap freads for single size read */
     if (read != header.prgrom*PRGROM_PAGESIZE) 
         err_exit("ROM: PRGROM read failed while loading %s. Read %d of %d bytes specified in header", 
                   read, header.prgrom*PRGROM_PAGESIZE);
-    map_rom(nes, &header, data);
+    /* read chrrom */
+    uint8_t chr[header.chrrom*CHRROM_PAGESIZE];
+    read = fread(chr, 1, header.chrrom*CHRROM_PAGESIZE, rom); /* TODO wrap freads for single size read */
+    if (read != header.chrrom*CHRROM_PAGESIZE) 
+        err_exit("ROM: CHRROM read failed while loading %s. Read %d of %d bytes specified in header", 
+                  read, header.chrrom*CHRROM_PAGESIZE);
+
+    map_rom(nes, &header, prg, chr);
     fclose(rom);
 
     return header;
 }
 
-void map_NROM_256(NES* nes, const InesHeader* header, uint8_t* data){
+void map_NROM_256(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr){
     unsigned int s = PRGROM_PAGESIZE * header->prgrom;
     uint8_t* dest = (nes->mem).map[PRGROM_START];
-    memcpy(dest, data, s);
+    memcpy(dest, prg, s);
 }
 
-void map_NROM_128(NES* nes, const InesHeader* header, uint8_t* data){
+void map_NROM_128(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr){
     unsigned int nb = PRGROM_PAGESIZE * header->prgrom;
     uint8_t* dest = (nes->mem).map[PRGROM_START];
-    memcpy(dest, data, nb);
+    memcpy(dest, prg, nb);
     uint8_t** mirror = (nes->mem.map)+0xC000;
     uint8_t** src = (nes->mem.map)+PRGROM_START;
     memcpy(mirror, src, sizeof(uint8_t*) * nb); /* mirror */
 }
 
-void map_rom(NES* nes, const InesHeader* header, uint8_t* data){
+void map_rom(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr){
     if (header->prgrom == 2) 
-        map_NROM_256(nes, header, data);
+        map_NROM_256(nes, header, prg, chr);
     else
-        map_NROM_128(nes, header, data);
+        map_NROM_128(nes, header, prg, chr);
 }

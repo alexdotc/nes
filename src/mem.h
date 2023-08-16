@@ -5,21 +5,43 @@
 #include <stdbool.h>
 
 #define CPU_MEM_SIZE 0xFFFF /* 64K memory map */
+#define PPU_MEM_SIZE 0x3FFF /* 16K memory map */
 
 typedef struct Memory{
 
     uint8_t** map;
 
-    /* convenient accessors */
-    uint8_t** internal; /* $0000-$07FF, 2K internal RAM */
-    uint8_t** ppu; /* $2000-$2007 */
+    /* offset accessors */
+    uint8_t** ram; /* $0000-$07FF, 2K internal RAM , mirrored 4 times to $1FFF */
+    uint8_t** ppu_reg; /* $2000-$2007 */
     uint8_t** data_reg; /* $4000-$4017, apu and i/o registers */
     uint8_t** test_reg; /* $4018-$401F, disabled/cpu test registers */
-    uint8_t** cartridge; /* $4020-$FFFF cartridge space */
+    uint8_t** prg; /* $4020-$FFFF cartridge space (PRG ROM) */
 
 } Memory;
 
-Memory alloc_main_memory(void); /* the actual memory array is on the heap */
-void free_main_memory(Memory);
+typedef struct PPUMemory{
+
+    uint8_t** map;
+
+    /* offset accessors */
+    uint8_t** pattern; /* $0000-$1FFF pattern tables (CHR ROM) */
+    uint8_t** nametable; /* $2000-$2FFF nametables (RAM) */
+    uint8_t** no_render; /* $3000-$3EFF partial mirror of the nametable space */
+    uint8_t** palette; /* $3F00-$3FFF palette RAM and mirror */
+
+} PPUMemory;
+
+typedef union MemUnion{
+
+    Memory* mem;
+    PPUMemory* ppumem;
+
+} MemUnion;
+
+Memory alloc_main_memory(void);
+void free_memory(Memory);
+
+PPUMemory alloc_ppu_memory(void);
 
 #endif
