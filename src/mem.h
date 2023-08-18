@@ -32,15 +32,15 @@ typedef struct PPUMemory{
 
 } PPUMemory;
 
-typedef union MemUnion{
+typedef union FreeableMemory {
 
     Memory* mem;
     PPUMemory* ppumem;
 
-} MemUnion;
+} FreeableMemory;
 
 Memory alloc_main_memory(void);
-void free_memory(Memory);
+void free_memory(FreeableMemory);
 
 PPUMemory alloc_ppu_memory(void);
 

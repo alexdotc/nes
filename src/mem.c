@@ -41,11 +41,10 @@ PPUMemory alloc_ppu_memory(void){
     return mem;
 }
 
-void free_memory(Memory mem){
+void free_memory(FreeableMemory mem){
     
-    free(*(mem.map)); /* free _map */
-    free(mem.map); /* free map */
-
+    free(*((mem.mem)->map)); /* free _map (nes real memory) */
+    free((mem.mem)->map); /* free map (nes address space) */
 }
 
 void init_main_memory(uint8_t* _map, uint8_t** map){
