@@ -78,6 +78,9 @@ void map_NROM_256(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr
     unsigned int s = PRGROM_PAGESIZE * header->prgrom;
     uint8_t* dest = (nes->mem).map[PRGROM_START];
     memcpy(dest, prg, s);
+    s = CHRROM_PAGESIZE * header->chrrom;
+    dest = (nes->ppumem).map[0];
+    memcpy(dest, chr, s);
 }
 
 void map_NROM_128(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr){
@@ -87,10 +90,13 @@ void map_NROM_128(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr
     uint8_t** mirror = (nes->mem.map)+0xC000;
     uint8_t** src = (nes->mem.map)+PRGROM_START;
     memcpy(mirror, src, sizeof(uint8_t*) * nb); /* mirror */
+    nb = CHRROM_PAGESIZE * header->chrrom;
+    dest = (nes->ppumem).map[0];
+    memcpy(dest, chr, nb);
 }
 
 void map_rom(NES* nes, const InesHeader* header, uint8_t* prg, uint8_t* chr){
-    if (header->prgrom == 2) 
+    if (header->prgrom == 2)
         map_NROM_256(nes, header, prg, chr);
     else
         map_NROM_128(nes, header, prg, chr);

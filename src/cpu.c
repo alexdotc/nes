@@ -256,7 +256,9 @@ void reset(CPU* cpu){
     uint16_t high = memreadPC(cpu);
 
     cpu->PC = (high << 8) | low; /* jump */
+    /* #ifdef NESTEST */
     cpu->PC = 0xC000; /* nestest first instruction */
+    /* #endif */
 }
 
 void FDE(CPU* cpu){
