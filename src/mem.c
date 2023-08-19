@@ -55,9 +55,19 @@ void init_main_memory(uint8_t* _map, uint8_t** map, PPU* ppu){
         map[i] = _map + (i % 0x800);
     }
 
+    /* make the PPU registers into the address space */
+    map[0x2000] = &(ppu->ppuctrl);
+    map[0x2001] = &(ppu->ppumask);
+    map[0x2002] = &(ppu->ppustatus);
+    map[0x2003] = &(ppu->oamaddr);
+    map[0x2004] = &(ppu->oamdata);
+    map[0x2005] = &(ppu->ppuscroll);
+    map[0x2006] = &(ppu->ppuaddr);
+    map[0x2007] = &(ppu->ppudata);
+
     /* (1FFF / 8)x mirrored PPU registers */
-    for(int i = 0x2000; i < 0x4000; ++i){
-        map[i] = _map + (i % 8);
+    for(int i = 0x2008; i < 0x4000; ++i){
+        map[i] = map[(i % 8) + 0x2000];
     }
 
     /* non-mirrored data registers, test registers, and cartridge space */
