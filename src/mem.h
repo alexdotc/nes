@@ -39,7 +39,9 @@ typedef union FreeableMemory {
 
 } FreeableMemory;
 
-Memory alloc_main_memory(void);
+#include "ppu.h"
+
+Memory alloc_main_memory(PPU*);
 void free_memory(FreeableMemory);
 
 PPUMemory alloc_ppu_memory(void);

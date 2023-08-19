@@ -3,15 +3,17 @@
 #endif
 
 #include "nes.h"
+#include "ppu.h"
 #include "cpu.h"
 #include "mem.h"
 #include "rom.h"
 
 NES power_on(const char* rom_filename){
-    Memory mem = alloc_main_memory();
     PPUMemory ppumem = alloc_ppu_memory();
+    PPU ppu = make_ppu(&ppumem);
+    Memory mem = alloc_main_memory(&ppu);
     CPU cpu = make_cpu(&mem);
-    NES nes = { cpu, mem, ppumem };
+    NES nes = { cpu, ppu, mem, ppumem };
     load_rom(&nes, rom_filename); /* TODO at some point down the line, we probably just want to do this as something separate from power_on, and just wait for a call while idling */
     #ifdef DEBUG
     printf("Sampling NROM mirroring...\n");

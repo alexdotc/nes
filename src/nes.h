@@ -7,8 +7,8 @@
 
 typedef struct NES{
     CPU cpu;
+    PPU ppu;
     Memory mem; /* CPU memory map */
-    /*PPU ppu; */
     PPUMemory ppumem; /* PPU memory map */
     /* ... */
 } NES;

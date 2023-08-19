@@ -4,15 +4,15 @@
 #include "mem.h"
 #include "util.h"
 
-void init_main_memory(uint8_t*, uint8_t**);
+void init_main_memory(uint8_t*, uint8_t**, PPU* ppu);
 void init_ppu_memory(uint8_t*, uint8_t**);
 
-Memory alloc_main_memory(void){
+Memory alloc_main_memory(PPU* ppu){
     
     uint8_t* _map = xalloc(CPU_MEM_SIZE, sizeof(uint8_t), calloc);
     uint8_t** map = xalloc(CPU_MEM_SIZE, sizeof(uint8_t*), calloc);
 
-    init_main_memory(_map, map);
+    init_main_memory(_map, map, ppu);
     
     uint8_t** ram = map;
     uint8_t** ppu_reg = map+(0x2000);
@@ -47,7 +47,7 @@ void free_memory(FreeableMemory mem){
     free((mem.mem)->map); /* free map (nes address space) */
 }
 
-void init_main_memory(uint8_t* _map, uint8_t** map){
+void init_main_memory(uint8_t* _map, uint8_t** map, PPU* ppu){
     /* TODO use memcpy */
 
     /* 4x mirrored internal ram */
